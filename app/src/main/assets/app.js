@@ -82,7 +82,7 @@
     if (!store.people.length) h += '<div class="empty">Personne pour l\'instant.<br>Ajoute les gens autour de la table avec le bouton ci-dessous.</div>';
     h += '<div class="grid">' + store.people.map(function (p) {
       return '<div class="pcard" data-act="editp" data-id="' + p.id + '">' + (p.fav ? '<span class="fav">★</span>' : '') + avatarHtml(p.avatar, 58) + '<div class="nm">' + esc(p.name) + '</div></div>';
-    }).join('') + '<div class="pcard" data-act="newp" style="display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed"><div style="font-size:30px;font-weight:900">+</div><div class="nm">Nouvelle personne</div></div></div>';
+    }).join('') + '<div class="pcard" data-act="newp" style="display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed"><div style="font-size:30px;font-weight:900">+</div><div class="nm" style="white-space:normal;line-height:1.1">Nouvelle personne</div></div></div>';
     h += '</div><div class="footer"><button class="btn" data-act="dash">Tableau de bord</button><button class="btn accent" data-act="newsession">Nouvelle session</button></div></div>';
     return h;
   }

@@ -19,7 +19,7 @@ h2 { font-size:13px; font-weight:800; color:var(--ink2); letter-spacing:.04em; t
 .row { display:flex; gap:8px; align-items:center; }
 .grow { flex:1; }
 .footer { position:fixed; left:0; right:0; bottom:0; padding:10px 16px calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, var(--bg) 28%); display:flex; gap:10px; }
-.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
 .pcard { position:relative; background:#fff; border-radius:20px; padding:8px 2px 8px; text-align:center; border:3px solid #e5ddd0; min-height:92px; }
 .pcard .nm { font-size:14px; font-weight:800; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 4px; }
 .pcard.off { opacity:.45; }
@@ -41,7 +41,7 @@ h2 { font-size:13px; font-weight:800; color:var(--ink2); letter-spacing:.04em; t
 .swatches .lab { width:72px; font-size:12px; font-weight:800; color:var(--ink2); }
 .sw { width:36px; height:36px; border-radius:50%; border:2px solid #fff; }
 .sw.sel { border:3px solid var(--ink); }
-.pgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.pgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
 .pgrid button { background:#fff; border:3px solid transparent; border-radius:20px; padding:4px; display:flex; justify-content:center; }
 .pgrid button.sel { background:#E9E2FF; border-color:#8E7CE8; }
 .preview { width:112px; height:112px; border-radius:50%; background:#fff; border:4px solid #8E7CE8; overflow:hidden; margin:6px auto; }

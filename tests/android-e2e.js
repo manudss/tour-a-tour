@@ -78,5 +78,5 @@ const shot = n => { sh(`adb exec-out screencap -p > e2e-out/${n}.png`); };
   const back = await p.evaluate(() => { window.__back(); return document.body.innerText.includes('Terminer la session'); });
   check('bouton retour géré par l\'application', back);
   fs.writeFileSync('e2e-out/results.json', JSON.stringify(results, null, 1));
-  await b.disconnect(); console.log('E2E ANDROID OK');
+  await b.disconnect(); fs.writeFileSync('e2e-out/results.json', JSON.stringify(results, null, 1)); console.log('E2E ANDROID OK'); process.exit(0);
 })().catch(e => { console.error('ECHEC E2E', e); process.exit(1); });

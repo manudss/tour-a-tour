@@ -34,6 +34,7 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         getWindow().setStatusBarColor(Color.parseColor("#FFF3E2"));
         getWindow().setNavigationBarColor(Color.parseColor("#FFF3E2"));
+        if (getIntent().getBooleanExtra("devtools", false)) WebView.setWebContentsDebuggingEnabled(true);
         web = new WebView(this);
         web.setBackgroundColor(Color.parseColor("#FFF3E2"));
         WebSettings s = web.getSettings();

@@ -1,4 +1,8 @@
-# Tour de parole
+# Tour à tour
+
+> Chacun sa bulle de parole. À qui le tour ?
+
+Nom d'affichage choisi par Emmanuel. Le dépôt et le package Android (`app.tourdeparole`) gardent leur nom technique d'origine. Disponibilité du nom (marque, boutique d'applications) non vérifiée.
 
 Application Android ludique pour partager le temps de parole autour d'une table. Un seul téléphone posé sur la table, on touche la bulle de la personne qui parle.
 

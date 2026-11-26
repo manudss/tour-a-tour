@@ -75,7 +75,7 @@
 
   /* ---------- Accueil ---------- */
   function home() {
-    var h = '<div class="screen"><div class="topbar"><div><h1>Tour de parole</h1><div class="sub">Chacun son tour, sans stress</div></div>' +
+    var h = '<div class="screen"><div class="topbar"><div><h1>Tour à tour</h1><div class="sub">Chacun sa bulle de parole. À qui le tour ?</div></div>' +
       '<button class="iconbtn" data-act="settings" aria-label="Réglages">⚙</button></div><div class="scroll">';
     if (store.live) h += '<div class="notice">Une session est en cours. <button class="btn small accent" data-act="resume" style="margin-top:8px">Reprendre la session</button></div>';
     h += '<h2>Mes personnes (' + store.people.length + ')</h2>';
@@ -313,7 +313,7 @@
       '<h2>Durée par défaut</h2><div class="card"><div class="stepper"><button class="iconbtn" data-act="sdur" data-d="-1">−</button><div class="val">' + st.minutes + ' min</div><button class="iconbtn" data-act="sdur" data-d="1">+</button></div></div>' +
       '<div class="card kv"><span>Garder l\'écran allumé</span><button class="chip ' + (st.keepAwake ? 'sel' : '') + '" data-act="sawake">' + (st.keepAwake ? 'Oui' : 'Non') + '</button></div>' +
       '<h2>Données</h2><div class="card"><div class="sub" style="margin-bottom:8px">Tout reste sur ce téléphone : ' + store.people.length + ' personnes, ' + store.sessions.length + ' sessions.</div><button class="btn" data-act="wipe" style="color:#b3261e;border-color:#b3261e">Effacer l\'historique des sessions</button></div>' +
-      '<div class="sub" style="text-align:center;margin-top:14px">Tour de parole · version 1.0</div></div></div>';
+      '<div class="sub" style="text-align:center;margin-top:14px">Tour à tour · version 1.0</div></div></div>';
   }
 
   /* ---------- Événements ---------- */

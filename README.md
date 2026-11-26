@@ -32,3 +32,6 @@ Copier `tour-de-parole.apk` sur le téléphone et l'ouvrir (autoriser les source
 
 ## État des tests
 Testé : logique (node:test) et interface dans Chrome en format téléphone, horloge simulée. L'APK est construit, signé et vérifié (`apksigner verify`, `aapt2 dump badging`) mais pas encore lancé sur un appareil ou un émulateur.
+
+## Intégration continue
+Le workflow `.github/workflows/android.yml` construit l'APK et le teste sur un émulateur Android (API 34) : démarrage, pont Android, écran allumé, données conservées après arrêt complet.

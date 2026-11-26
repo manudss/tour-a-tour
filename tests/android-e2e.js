@@ -34,7 +34,8 @@ async function connect() {
     try {
       const list = await getJson('http://127.0.0.1:9222/json/list');
       const t = list.find(x => (x.url || '').includes('android_asset') && x.webSocketDebuggerUrl);
-      if (t) { const c = await cdp(t.webSocketDebuggerUrl); const p = { evaluate: (fn, ...args) => c.eval('(' + fn.toString() + ').apply(null,' + JSON.stringify(args) + ')'), type: async (sel, v) => c.eval(`(()=>{const e=document.querySelector(${JSON.stringify(sel)});e.focus();e.value=${JSON.stringify(v)};e.dispatchEvent(new Event('input',{bubbles:true}));})()`) }; return { b: { disconnect: async () => c.close() }, p }; }
+      if (t) { const c = await cdp(t.webSocketDebuggerUrl); const p = { evaluate: (fn, ...args) => c.eval('(' + fn.toString() + ').apply(null,' + JSON.stringify(args) + ')'), type: async (sel, v) => c.eval(`(()=>{const e=document.querySelector(${JSON.stringify(sel)});e.focus();e.value=${JSON.stringify(v)};e.dispatchEvent(new Event('input',{bubbles:true}));})()`) }; for (let k = 0; k < 30; k++) { try { if (await c.eval('document.readyState==="complete" && !!window.TPLogic && !!document.querySelector("#app h1, #app .screen")')) break; } catch (e) { /* page pas prête */ } await sleep(1000); }
+        return { b: { disconnect: async () => c.close() }, p }; }
       console.log('cibles:', JSON.stringify(list.map(x => x.url)));
     } catch (e) { console.log('connexion WebView:', e.message); }
     await sleep(1000);

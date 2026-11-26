@@ -17,6 +17,11 @@ jobs:
       - run: npm ci
       - name: Tests logique
         run: npm run test:logic
+      - name: Clé de signature stable (secrets du dépôt)
+        env:
+          KS_B64: ${{ secrets.TDP_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then mkdir -p keystore && echo "$KS_B64" | base64 -d > keystore/release.jks && echo "KEYSTORE=keystore/release.jks" >> "$GITHUB_ENV"; echo "KEYSTORE_PASS=${{ secrets.TDP_KEYSTORE_PASS }}" >> "$GITHUB_ENV"; else echo "Pas de secret: clé de débogage éphémère"; fi
       - name: Build APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk

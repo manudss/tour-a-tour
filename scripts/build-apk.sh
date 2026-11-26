@@ -24,12 +24,14 @@ cp "$OUT/base.apk" "$OUT/unsigned.apk"
 
 # Clé de débogage locale, jamais commitée (voir .gitignore).
 KS="${KEYSTORE:-keystore/debug.jks}"
+KPASS="${KEYSTORE_PASS:-android}"
 if [ ! -f "$KS" ]; then
   mkdir -p "$(dirname "$KS")"
   keytool -genkeypair -keystore "$KS" -storepass android -keypass android -alias tdp \
     -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Tour de parole debug"
 fi
-"$BT/apksigner" sign --ks "$KS" --ks-pass pass:android --key-pass pass:android \
+export KPASS
+"$BT/apksigner" sign --ks "$KS" --ks-pass env:KPASS --key-pass env:KPASS \
   --out "$OUT/tour-de-parole.apk" "$OUT/aligned.apk"
 "$BT/apksigner" verify --verbose "$OUT/tour-de-parole.apk" | head -5
 "$BT/aapt2" dump badging "$OUT/tour-de-parole.apk" | grep -E "^(package|sdkVersion|targetSdk|application-label|launchable)"

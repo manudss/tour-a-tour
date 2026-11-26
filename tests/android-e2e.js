@@ -2,7 +2,9 @@
 const { execSync } = require('child_process');
 const puppeteer = require('puppeteer-core');
 const fs = require('fs'); fs.mkdirSync('e2e-out', { recursive: true });
-const sh = c => execSync(c, { encoding: 'utf8' }).trim();
+const sh = c => execSync(c, { encoding: 'utf8', timeout: 60000, shell: '/bin/bash' }).trim();
+const diag = () => { try { fs.writeFileSync('e2e-out/diag.txt', sh('adb shell cat /proc/net/unix | grep -i devtools; adb logcat -d | tail -80 || true')); } catch (e) { /* diag best effort */ } };
+setTimeout(() => { console.log('WATCHDOG: test trop long'); diag(); process.exit(2); }, 8 * 60 * 1000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const APK = 'build/tour-de-parole.apk', PKG = 'app.tourdeparole';
 const results = [];
@@ -11,18 +13,19 @@ function check(name, ok, extra) { results.push({ name, ok: !!ok, extra: extra ||
 async function connect() {
   for (let i = 0; i < 30; i++) {
     const sock = sh("adb shell cat /proc/net/unix | grep webview_devtools_remote | head -1 | awk '{print $NF}' | tr -d '@\\r'");
+    console.log('socket devtools:', sock || '(aucun)');
     if (sock) { sh(`adb forward tcp:9222 localabstract:${sock}`); break; }
     await sleep(1000);
   }
   for (let i = 0; i < 20; i++) {
     try {
-      const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+      const b = await Promise.race([puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null }), new Promise((_, rj) => setTimeout(() => rj(new Error('connect timeout')), 8000))]);
       const pages = await b.pages(); const p = pages.find(x => x.url().includes('android_asset'));
       if (p) return { b, p };
-    } catch (e) { /* pas prêt */ }
+    } catch (e) { console.log('connexion WebView:', e.message); }
     await sleep(1000);
   }
-  throw new Error('WebView injoignable');
+  diag(); throw new Error('WebView injoignable');
 }
 const launch = () => sh(`adb shell am start -n ${PKG}/.MainActivity --ez devtools true`);
 const shot = n => { sh(`adb exec-out screencap -p > e2e-out/${n}.png`); };

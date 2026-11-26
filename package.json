@@ -1,0 +1,13 @@
+{
+  "name": "tour-de-parole",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Application Android pour partager le temps de parole autour d'une table",
+  "scripts": {
+    "test": "node --test tests/logic.test.js && node tests/ui.test.js",
+    "test:logic": "node --test tests/logic.test.js",
+    "test:ui": "node tests/ui.test.js",
+    "build:apk": "bash scripts/build-apk.sh"
+  },
+  "devDependencies": { "puppeteer-core": "^22.15.0" }
+}

@@ -48,6 +48,16 @@ let step = 0;
       const sels2 = await page.evaluate(() => document.querySelectorAll('.pgrid .sel').length);
       assert(sels2 === 1, 'une seule case sélectionnée (Tous), trouvé ' + sels2);
       await shot('editeur-tous');
+      const sw = await page.evaluate(async () => {
+        const all = [...document.querySelectorAll('.sw[data-key=shirt]')];
+        const last = all[all.length - 1]; last.scrollIntoView({ block: 'center' });
+        await new Promise(r => setTimeout(r, 300));
+        const rr = last.getBoundingClientRect(), top = document.elementFromPoint(rr.x + rr.width / 2, rr.y + rr.height / 2);
+        const ft = document.querySelector('.footer, .foot, #foot, [data-act=savep]');
+        return { n: all.length, reachable: top === last, bottom: rr.bottom, vh: innerHeight, footTop: ft ? ft.getBoundingClientRect().top : null };
+      });
+      assert(sw.n >= 12 && sw.reachable, 'les 12 couleurs de tee-shirt sont atteignables en défilant: ' + JSON.stringify(sw));
+      await shot('editeur-couleurs-defilement');
     }
     if (!fav) await click('[data-act=togfav]');
     await click('[data-act=savep]');
@@ -111,6 +121,26 @@ let step = 0;
   const pb = await page.evaluate(() => [...document.querySelectorAll('#panel .row .btn')].map(b => b.textContent.trim()));
   assert(pb.some(x => x.includes('Reprendre')) && pb.some(x => x.includes('Fin')), 'en pause: Reprendre et Fin visibles: ' + pb.join('|'));
   await shot('pause-reprendre-fin');
+  const hit = await page.evaluate(() => {
+    const out = [];
+    document.querySelectorAll('.bubble').forEach(b => {
+      ['.tbadge', '.bn'].forEach(sel => {
+        const e = b.querySelector(sel); if (!e) return;
+        const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        out.push({ sel, name: b.querySelector('.bn').textContent, ok: !!top && b.contains(top) });
+      });
+      const r = b.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      out.push({ sel: 'centre', name: b.querySelector('.bn').textContent, ok: !!top && b.contains(top) });
+    });
+    return out;
+  });
+  assert(hit.length && hit.every(h => h.ok), 'badge, nom et centre de chaque bulle visibles et touchables: ' + JSON.stringify(hit.filter(h => !h.ok)));
+  await page.evaluate(() => { const L = window.TPLogic, st = window.__tp.store, ids = st.live.people.map(p => p.id); st.live.counts[ids[0]] = 7; st.live.counts[ids[1]] = 4; st.live.counts[ids[2]] = 2; ids.slice(3).forEach(i => { st.live.counts[i] = 1; }); window.__tp.save(); window.__tp.render(); });
+  await new Promise(r => setTimeout(r, 800));
+  const hues = await page.evaluate(() => [...document.querySelectorAll('.bubble')].map(b => ({ n: b.querySelector('.bn').textContent, c: +b.querySelector('.tbadge').textContent, bg: b.querySelector('.tbadge').style.background })));
+  console.log(JSON.stringify(hues));
+  await shot('badges-desequilibre');
+  await page.evaluate(() => { const st = window.__tp.store; st.live.counts = JSON.parse(JSON.stringify(st.live.counts)); });
   await click('#panel [data-act=endask]');
   assert((await text()).includes('Terminer la session ?'), 'Fin en pause propose de terminer');
   await click('[data-act=dlgbtn][data-i="1"]');

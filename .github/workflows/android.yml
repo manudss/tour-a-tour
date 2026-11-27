@@ -7,6 +7,10 @@ on:
 jobs:
   build-and-e2e:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [34, 36]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -22,26 +26,41 @@ jobs:
           KS_B64: ${{ secrets.TDP_KEYSTORE_B64 }}
         run: |
           if [ -n "$KS_B64" ]; then mkdir -p keystore && echo "$KS_B64" | base64 -d > keystore/release.jks && echo "KEYSTORE=keystore/release.jks" >> "$GITHUB_ENV"; echo "KEYSTORE_PASS=${{ secrets.TDP_KEYSTORE_PASS }}" >> "$GITHUB_ENV"; else echo "Pas de secret: clé de débogage éphémère"; fi
+      - name: SDK Android 36 et outils
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" >/dev/null
+          curl -sfL -o "$RUNNER_TEMP/bundletool.jar" https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar
+          echo "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29  $RUNNER_TEMP/bundletool.jar" | sha256sum -c -
+          echo "BUNDLETOOL=$RUNNER_TEMP/bundletool.jar" >> "$GITHUB_ENV"
       - name: Build APK
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
         run: bash scripts/build-apk.sh
+      - name: Build AAB pour Google Play et vérification
+        run: |
+          bash scripts/build-aab.sh
+          java -jar "$BUNDLETOOL" build-apks --bundle=build/tour-a-tour.aab --output=build/universal.apks --mode=universal \
+            --ks="${KEYSTORE:-keystore/debug.jks}" --ks-pass="pass:${KEYSTORE_PASS:-android}" --ks-key-alias="$(keytool -list -keystore "${KEYSTORE:-keystore/debug.jks}" -storepass "${KEYSTORE_PASS:-android}" 2>/dev/null | awk -F, '/PrivateKeyEntry/{print $1; exit}')"
+          unzip -qo build/universal.apks -d build/universal && "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging build/universal/universal.apk | grep -E "^package|targetSdk"
       - uses: actions/upload-artifact@v4
-        with: { name: tour-de-parole-apk, path: build/tour-de-parole.apk }
+        if: matrix.api == 34
+        with:
+          name: tour-de-parole-apk
+          path: |
+            build/tour-de-parole.apk
+            build/tour-a-tour.aab
       - name: KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
       - name: Version précédente (test de mise à jour)
-        run: curl -sfL -o build/prev.apk https://github.com/manudss/tour-a-tour/releases/download/v0.1.0-test/tour-a-tour.apk || echo "pas de version précédente"
+        run: curl -sfL -o build/prev.apk https://github.com/manudss/tour-a-tour/releases/download/v0.1.2-test/tour-a-tour.apk || echo "pas de version précédente"
       - name: Test sur émulateur Android
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
           disable-animations: true
           script: node tests/android-e2e.js
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: android-e2e, path: e2e-out/ }
+        with: { name: 'android-e2e-${{ matrix.api }}', path: e2e-out/ }

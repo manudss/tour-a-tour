@@ -62,7 +62,7 @@ const shot = n => { sh(`adb exec-out screencap -p > e2e-out/${n}.png`); };
     console.log(upd);
     check('installation par-dessus la précédente (même signature)', /Success/.test(upd), upd.slice(0, 160));
     const vc = sh(`adb shell dumpsys package ${PKG} | grep -E "versionCode|versionName" | head -2`);
-    check('nouvelle version en place', /versionCode=3/.test(vc), vc);
+    check('nouvelle version en place', new RegExp('versionCode=' + (process.env.EXPECT_CODE || '100000')).test(vc), vc);
     launch(); await sleep(3000);
     c0 = await connect();
     const apres = await c0.p.evaluate(() => JSON.parse(localStorage.getItem('tp:data')).people.map(x => x.name));

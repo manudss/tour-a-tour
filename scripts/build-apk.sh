@@ -1,19 +1,22 @@
 #!/usr/bin/env bash
 # Construit et signe l'APK sans Gradle : aapt2 + javac + d8 + zipalign + apksigner.
-# Prérequis : JDK 17 et Android SDK (platforms;android-34, build-tools;34.0.0).
+# Prérequis : JDK 17 et Android SDK (platforms;android-36, build-tools;36.0.0).
+# Version: VERSION_CODE / VERSION_NAME (défaut 100000 / 1.0.0-dev). Signature: KEYSTORE / KEYSTORE_PASS.
 # Variables : ANDROID_HOME (défaut ~/droid/sdk), JAVA_HOME (défaut : java du PATH).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 SDK="${ANDROID_HOME:-$HOME/droid/sdk}"
-BT="$SDK/build-tools/34.0.0"
-PLAT="$SDK/platforms/android-34/android.jar"
+API="${ANDROID_API:-36}"; BTV="${BUILD_TOOLS:-36.0.0}"
+BT="$SDK/build-tools/$BTV"
+PLAT="$SDK/platforms/android-$API/android.jar"
+VERSION_CODE="${VERSION_CODE:-100000}"; VERSION_NAME="${VERSION_NAME:-1.0.0-dev}"
 OUT=build; PKG=app.tourdeparole
 rm -rf "$OUT"; mkdir -p "$OUT/classes" "$OUT/res-compiled" "$OUT/dex"
 
 "$BT/aapt2" compile --dir app/src/main/res -o "$OUT/res-compiled"
 "$BT/aapt2" link -o "$OUT/base.apk" -I "$PLAT" \
   --manifest app/src/main/AndroidManifest.xml -A app/src/main/assets \
-  --min-sdk-version 24 --target-sdk-version 34 --version-code 3 --version-name 1.0.2 \
+  --min-sdk-version 24 --target-sdk-version "$API" --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
   --java "$OUT/gen" "$OUT/res-compiled"/*.flat
 javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -classpath "$PLAT" -d "$OUT/classes" \
   $(find app/src/main/java "$OUT/gen" -name '*.java')

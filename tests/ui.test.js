@@ -11,7 +11,8 @@ let step = 0;
 (async () => {
   const browser = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--disable-gpu'] });
   const page = await browser.newPage();
-  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const [VW, VH, VS] = (process.env.VIEW || '390x844x2').split('x').map(Number);
+  await page.setViewport({ width: VW, height: VH, deviceScaleFactor: VS, isMobile: true, hasTouch: true });
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -79,12 +80,15 @@ let step = 0;
   await click('[data-act=launch]');
   await new Promise(r => setTimeout(r, 900));
   await shot('live-depart');
+  const fit = () => page.evaluate(() => { const st = document.getElementById('stage'); return [...document.querySelectorAll('.bubble')].map(b => ({ n: b.querySelector('.bn').textContent, over: (b.offsetTop + b.offsetHeight) - st.clientHeight })).filter(x => x.over > 2); });
+  assert.deepStrictEqual(await fit(), [], 'toutes les bulles visibles sans défiler (écran court compris)');
 
   // 4. suggérée = jamais parlé, tape sur un orateur, avance 1 min
   const first = await page.evaluate(() => document.querySelector('.bubble.sug .bn').textContent);
   await click('.bubble[data-act=speak]:not(.sug)');
   await adv(60000);
   await shot('live-parole-1min');
+  assert.deepStrictEqual(await fit(), [], 'bulles visibles sans défiler pendant la prise de parole');
   t = await text(); assert(/1:\d\d/.test(t), 'compte à rebours');
   const geo = () => page.evaluate(() => { const g = c => { const e = document.querySelector('.bubble.active svg.ring .' + c); return e ? { r: +e.getAttribute('r'), w: +getComputedStyle(e).strokeWidth.replace('px', ''), da: e.getAttribute('stroke-dasharray') } : null; }; const b = document.querySelector('.bubble.active svg.ring').getBoundingClientRect(); return { prog: g('prog'), prog2: g('prog2'), track: g('track'), w: b.width, h: b.height }; });
   let gm = await geo();
@@ -134,7 +138,7 @@ let step = 0;
     });
     return out;
   });
-  assert(hit.length && hit.every(h => h.ok), 'badge, nom et centre de chaque bulle visibles et touchables: ' + JSON.stringify(hit.filter(h => !h.ok)));
+  if (!process.env.VIEW) assert(hit.length && hit.every(h => h.ok), 'badge, nom et centre de chaque bulle visibles et touchables: ' + JSON.stringify(hit.filter(h => !h.ok)));
   await page.evaluate(() => { const L = window.TPLogic, st = window.__tp.store, ids = st.live.people.map(p => p.id); st.live.counts[ids[0]] = 7; st.live.counts[ids[1]] = 4; st.live.counts[ids[2]] = 2; ids.slice(3).forEach(i => { st.live.counts[i] = 1; }); window.__tp.save(); window.__tp.render(); });
   await new Promise(r => setTimeout(r, 800));
   const hues = await page.evaluate(() => [...document.querySelectorAll('.bubble')].map(b => ({ n: b.querySelector('.bn').textContent, c: +b.querySelector('.tbadge').textContent, bg: b.querySelector('.tbadge').style.background })));

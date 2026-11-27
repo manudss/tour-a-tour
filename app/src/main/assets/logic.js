@@ -26,6 +26,22 @@
   function totalMs(s, pid, now) {
     return (s.totals[pid] || 0) + (s.current && s.current.pid === pid ? elapsedCurrent(s, now) : 0);
   }
+  /* Nombre de tours de parole affiché: tours terminés (>= 1 s) + tour en cours s'il dure déjà >= 1 s.
+     La pause ne crée pas de tour: le tour en cours est compté une seule fois. */
+  function turnCount(s, pid, now) {
+    var n = s.counts[pid] || 0;
+    if (s.current && s.current.pid === pid && elapsedCurrent(s, now) >= 1000) n += 1;
+    return n;
+  }
+  /* Teinte du badge (130 vert .. 0 rouge): écart entre le nombre de tours de la personne
+     et la moyenne de tous les participants. Écart <= 0.5 tour: vert. Écart >= 2.5 tours: rouge. */
+  function turnHue(s, pid, now) {
+    var counts = s.people.map(function (p) { return turnCount(s, p.id, now); });
+    var mean = counts.reduce(function (a, b) { return a + b; }, 0) / (counts.length || 1);
+    var d = turnCount(s, pid, now) - mean;
+    var k = Math.max(0, Math.min(1, (d - 0.5) / 2));
+    return Math.round(130 * (1 - k));
+  }
   function isRunning(s) { return !!(s.current && s.current.resumedAt != null); }
 
   function commitCurrent(s, now) {
@@ -211,7 +227,7 @@
   return {
     clone: clone, uid: uid, newSession: newSession, elapsedCurrent: elapsedCurrent, totalMs: totalMs,
     isRunning: isRunning, rank: rank, suggestion: suggestion, startTurn: startTurn, nextPerson: nextPerson,
-    skipSuggestion: skipSuggestion, pause: pause, resume: resume, stopTurn: stopTurn, addPerson: addPerson,
+    turnCount: turnCount, turnHue: turnHue, skipSuggestion: skipSuggestion, pause: pause, resume: resume, stopTurn: stopTurn, addPerson: addPerson,
     finish: finish, mmss: mmss, hm: hm, aggregate: aggregate, packBubbles: packBubbles, bubbleRadii: bubbleRadii
   };
 });

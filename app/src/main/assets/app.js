@@ -210,6 +210,8 @@
       }
       inside += '<div class="av" style="width:' + asz + 'px;height:' + asz + 'px;margin-top:' + Math.round(r * 0.04) + 'px">' + avatarHtml(p.avatar, asz, isCur && running) + '</div>';
       inside += '<div class="bn" style="font-size:' + fs + 'px">' + esc(p.name) + '</div><div class="bt" style="font-size:' + (fs - 1) + 'px">' + L.mmss(totals[p.id]) + '</div>';
+      var tc = L.turnCount(s, p.id, t), th = L.turnHue(s, p.id, t);
+      inside += '<span class="tbadge" style="background:hsl(' + th + ',60%,42%)" aria-label="' + tc + ' tours de parole">' + tc + '</span>';
       if (isSug) inside += '<span class="star">★</span>';
       if (fresh) { void el.offsetWidth; }
       var sig = inside;

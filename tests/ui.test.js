@@ -80,12 +80,15 @@ let step = 0;
   await click('[data-act=launch]');
   await new Promise(r => setTimeout(r, 900));
   await shot('live-depart');
+  const fit = () => page.evaluate(() => { const st = document.getElementById('stage'); return [...document.querySelectorAll('.bubble')].map(b => ({ n: b.querySelector('.bn').textContent, over: (b.offsetTop + b.offsetHeight) - st.clientHeight })).filter(x => x.over > 2); });
+  assert.deepStrictEqual(await fit(), [], 'toutes les bulles visibles sans défiler (écran court compris)');
 
   // 4. suggérée = jamais parlé, tape sur un orateur, avance 1 min
   const first = await page.evaluate(() => document.querySelector('.bubble.sug .bn').textContent);
   await click('.bubble[data-act=speak]:not(.sug)');
   await adv(60000);
   await shot('live-parole-1min');
+  assert.deepStrictEqual(await fit(), [], 'bulles visibles sans défiler pendant la prise de parole');
   t = await text(); assert(/1:\d\d/.test(t), 'compte à rebours');
   const geo = () => page.evaluate(() => { const g = c => { const e = document.querySelector('.bubble.active svg.ring .' + c); return e ? { r: +e.getAttribute('r'), w: +getComputedStyle(e).strokeWidth.replace('px', ''), da: e.getAttribute('stroke-dasharray') } : null; }; const b = document.querySelector('.bubble.active svg.ring').getBoundingClientRect(); return { prog: g('prog'), prog2: g('prog2'), track: g('track'), w: b.width, h: b.height }; });
   let gm = await geo();

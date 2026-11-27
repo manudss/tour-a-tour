@@ -182,6 +182,16 @@
     var radii = L.bubbleRadii(totals, cur, W, H);
     var items = s.people.map(function (p) { return { id: p.id, r: radii[p.id], first: p.id === (cur || sug) }; });
     var pk = L.packBubbles(items, W, H, 8);
+    /* Écran court: si les bulles débordent sous la zone visible, on les réduit (rayon mini 22 px, touchable)
+       jusqu'à tout faire tenir sans défiler. Au-delà (beaucoup de monde), la zone reste défilante. */
+    for (var it2 = 0; it2 < 10 && pk.height > H + 1; it2++) {
+      var minR = Math.min.apply(null, items.map(function (x) { return x.r; }));
+      if (minR <= 22) break;
+      var k = Math.max(22 / minR, Math.min(0.96, (H - 10) / pk.height));
+      items = items.map(function (x) { return { id: x.id, r: Math.max(22, x.r * k), first: x.first }; });
+      items.forEach(function (x) { radii[x.id] = x.r; });
+      pk = L.packBubbles(items, W, H, 8);
+    }
     inner.style.height = pk.height + 'px';
     var total = s.people.reduce(function (a, p) { return a + totals[p.id]; }, 0);
     document.getElementById('lt').textContent = 'Table de ' + s.people.length;

@@ -2,7 +2,11 @@ package app.tourdeparole;
 
 import android.app.Activity;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
+import android.view.WindowInsets;
+import android.widget.FrameLayout;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -45,7 +49,26 @@ public class MainActivity extends Activity {
         s.setTextZoom(100);
         web.addJavascriptInterface(new Bridge(), "Android");
         web.setWebViewClient(new WebViewClient());
-        setContentView(web);
+        /* Android 15+ (cible 35 et plus) dessine l'application sous les barres système :
+           on réserve la place des barres, de l'encoche et du clavier avec un conteneur crème. */
+        final FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.parseColor("#FFF3E2"));
+        root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+        root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+            public WindowInsets onApplyWindowInsets(View v, WindowInsets in) {
+                int l, t, r, bt;
+                if (Build.VERSION.SDK_INT >= 30) {
+                    android.graphics.Insets i = in.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
+                    l = i.left; t = i.top; r = i.right; bt = i.bottom;
+                } else {
+                    l = in.getSystemWindowInsetLeft(); t = in.getSystemWindowInsetTop();
+                    r = in.getSystemWindowInsetRight(); bt = in.getSystemWindowInsetBottom();
+                }
+                v.setPadding(l, t, r, bt);
+                return in;
+            }
+        });
+        setContentView(root);
         web.loadUrl("file:///android_asset/index.html");
     }
 

@@ -27,7 +27,8 @@ Interface web hors ligne (HTML, CSS, JavaScript sans dépendance) dans une coque
 ```
 npm install          # puppeteer-core pour les tests d'interface (Chrome requis)
 npm test             # tests de logique + test d'interface sur écran de téléphone
-npm run build:apk    # génère build/tour-de-parole.apk (JDK 17 + SDK Android 34)
+npm run build:apk    # génère build/tour-de-parole.apk (JDK 17 + SDK Android 36)
+bash scripts/build-aab.sh   # génère build/tour-a-tour.aab pour Google Play (bundletool)
 ```
 `npm test` produit des captures dans `/tmp/shots` (variable `SHOTS`).
 
@@ -39,3 +40,6 @@ Testé : logique (node:test) et interface dans Chrome en format téléphone, hor
 
 ## Intégration continue
 Le workflow `.github/workflows/android.yml` construit l'APK et le teste sur un émulateur Android (API 34) : démarrage, pont Android, écran allumé, données conservées après arrêt complet.
+
+## Releases
+Chaque PR fusionnée dans `main` publie automatiquement une release GitHub (APK + AAB) si les tests sont verts. Détails, clé de signature et préparation Google Play: `scripts/RELEASES.md`.

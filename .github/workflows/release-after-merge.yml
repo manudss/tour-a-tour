@@ -1,0 +1,150 @@
+name: Publier après fusion d'une PR
+on:
+  workflow_run:
+    workflows: [android]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: publish-main
+  cancel-in-progress: false
+jobs:
+  publish:
+    # Seulement un push sur main dont les tests sont verts, sur le dépôt lui-même.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+    env:
+      # Empreinte publique du certificat de signature stable. Une autre clé fait échouer la publication.
+      EXPECTED_CERT_SHA256: 38eeacf52a9de483f4ea294f694d97c715ab47172f0b6d080454a05b6a4ab40f
+    steps:
+      - name: Exiger une PR fusionnée pour ce commit exact
+        id: gate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.workflow_run.head_sha;
+            const prs = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {...context.repo, commit_sha: sha});
+            const pr = prs.find(p => p.merged_at && p.base.ref === 'main' && p.merge_commit_sha === sha);
+            core.setOutput('allowed', pr ? 'true' : 'false');
+            if (pr) {
+              require('fs').writeFileSync(process.env.RUNNER_TEMP + '/pr-notes.txt', `PR #${pr.number}: ${pr.title}\n\n${(pr.body || '').slice(0, 3000)}`);
+            } else core.notice('Pas de PR fusionnée pour ce commit de main: aucune release.');
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.allowed == 'true'
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Lire les releases existantes, brouillons compris
+        if: steps.gate.outputs.allowed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const releases = await github.paginate(github.rest.repos.listReleases, {...context.repo, per_page: 100});
+            require('fs').writeFileSync('release-history.json', JSON.stringify(releases.map(r => ({tag_name: r.tag_name, target_commitish: r.target_commitish, draft: r.draft}))));
+      - name: Planifier une version unique
+        if: steps.gate.outputs.allowed == 'true'
+        id: version
+        env:
+          BUILD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          python3 scripts/test-release-plan.py
+          python3 scripts/release-plan.py "$BUILD_SHA" release-history.json > release-plan.json
+          python3 - <<'PY'
+          import json, os
+          p = json.load(open('release-plan.json'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              for k, v in p.items(): f.write(f'{k}={v}\n')
+          PY
+      - name: Ne jamais remplacer une release existante
+        if: steps.gate.outputs.allowed == 'true'
+        id: existing
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        with:
+          script: |
+            try {
+              const r = await github.rest.repos.getReleaseByTag({...context.repo, tag: process.env.RELEASE_TAG});
+              core.setOutput('found', 'true'); core.notice(`Release déjà présente, laissée intacte: ${r.data.html_url}`);
+            } catch (e) { if (e.status !== 404) throw e; core.setOutput('found', 'false'); }
+      - name: Exiger la clé de signature stable
+        if: steps.gate.outputs.allowed == 'true' && steps.existing.outputs.found != 'true'
+        env:
+          KS_B64: ${{ secrets.TDP_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.TDP_KEYSTORE_PASS }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ]; then echo 'Clé de signature stable absente: publication arrêtée, aucune clé de débogage utilisée.'; exit 1; fi
+          mkdir -p keystore && echo "$KS_B64" | base64 -d > keystore/release.jks
+          echo "KEYSTORE=keystore/release.jks" >> "$GITHUB_ENV"
+          echo "::add-mask::$KS_PASS"
+          echo "KEYSTORE_PASS=$KS_PASS" >> "$GITHUB_ENV"
+      - uses: actions/setup-java@v4
+        if: steps.gate.outputs.allowed == 'true' && steps.existing.outputs.found != 'true'
+        with: { distribution: temurin, java-version: '17' }
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.allowed == 'true' && steps.existing.outputs.found != 'true'
+        with: { node-version: '20' }
+      - name: Tests de logique
+        if: steps.gate.outputs.allowed == 'true' && steps.existing.outputs.found != 'true'
+        run: npm ci && npm run test:logic
+      - name: Outils Android 36 et bundletool
+        if: steps.gate.outputs.allowed == 'true' && steps.existing.outputs.found != 'true'
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" >/dev/null
+          curl -sfL -o "$RUNNER_TEMP/bundletool.jar" https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar
+          echo "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29  $RUNNER_TEMP/bundletool.jar" | sha256sum -c -
+          echo "BUNDLETOOL=$RUNNER_TEMP/bundletool.jar" >> "$GITHUB_ENV"
+      - name: Construire APK et AAB versionnés
+        if: steps.gate.outputs.allowed == 'true' && steps.existing.outputs.found != 'true'
+        env:
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          VERSION_NAME: ${{ steps.version.outputs.version }}
+        run: |
+          bash scripts/build-apk.sh
+          bash scripts/build-aab.sh
+          mkdir -p release
+          cp build/tour-de-parole.apk "release/tour-a-tour-$VERSION_NAME.apk"
+          cp build/tour-de-parole.apk release/tour-a-tour.apk
+          cp build/tour-a-tour.aab "release/tour-a-tour-$VERSION_NAME.aab"
+      - name: Vérifier la signature (empreinte épinglée) et la version
+        if: steps.gate.outputs.allowed == 'true' && steps.existing.outputs.found != 'true'
+        env:
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          VERSION_NAME: ${{ steps.version.outputs.version }}
+        run: |
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          got=$("$BT/apksigner" verify --print-certs release/tour-a-tour.apk | awk '/SHA-256 digest/{print $NF; exit}')
+          [ "$got" = "$EXPECTED_CERT_SHA256" ] || { echo "Empreinte APK inattendue: $got"; exit 1; }
+          aabgot=$(keytool -printcert -jarfile "release/tour-a-tour-$VERSION_NAME.aab" | awk '/SHA256:/{gsub(":",""); print tolower($2); exit}')
+          [ "$aabgot" = "$EXPECTED_CERT_SHA256" ] || { echo "Empreinte AAB inattendue: $aabgot"; exit 1; }
+          "$BT/aapt2" dump badging release/tour-a-tour.apk | grep -q "versionCode='$VERSION_CODE' versionName='$VERSION_NAME'"
+          (cd release && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+      - name: Créer le brouillon, téléverser, puis publier
+        if: steps.gate.outputs.allowed == 'true' && steps.existing.outputs.found != 'true'
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_SHA: ${{ steps.version.outputs.sha }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        with:
+          script: |
+            const fs = require('fs');
+            const notes = fs.readFileSync(process.env.RUNNER_TEMP + '/pr-notes.txt', 'utf8');
+            const body = `Tour à tour ${process.env.APP_VERSION}\n\nInstaller: télécharger tour-a-tour.apk (mise à jour par-dessus la version précédente, mêmes données). Pour Google Play: le fichier .aab.\nTesté en CI sur émulateurs Android 14 et 16, pas sur un vrai téléphone.\n\nChangements (PR fusionnée):\n${notes}`;
+            const draft = await github.rest.repos.createRelease({...context.repo, tag_name: process.env.RELEASE_TAG, target_commitish: process.env.RELEASE_SHA, name: `Tour à tour ${process.env.APP_VERSION}`, body, draft: true, prerelease: false});
+            try {
+              for (const name of fs.readdirSync('release').sort()) {
+                await github.rest.repos.uploadReleaseAsset({...context.repo, release_id: draft.data.id, name, data: fs.readFileSync(`release/${name}`)});
+              }
+              const published = await github.rest.repos.updateRelease({...context.repo, release_id: draft.data.id, draft: false, make_latest: 'true'});
+              await core.summary.addLink('Télécharger Tour à tour', published.data.html_url).write();
+            } catch (error) {
+              core.error(`Téléversement incomplet. Brouillon ${draft.data.id} conservé, non publié, rien remplacé.`);
+              throw error;
+            }

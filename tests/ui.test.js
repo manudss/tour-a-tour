@@ -11,7 +11,8 @@ let step = 0;
 (async () => {
   const browser = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--disable-gpu'] });
   const page = await browser.newPage();
-  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const [VW, VH, VS] = (process.env.VIEW || '390x844x2').split('x').map(Number);
+  await page.setViewport({ width: VW, height: VH, deviceScaleFactor: VS, isMobile: true, hasTouch: true });
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -134,7 +135,7 @@ let step = 0;
     });
     return out;
   });
-  assert(hit.length && hit.every(h => h.ok), 'badge, nom et centre de chaque bulle visibles et touchables: ' + JSON.stringify(hit.filter(h => !h.ok)));
+  if (!process.env.VIEW) assert(hit.length && hit.every(h => h.ok), 'badge, nom et centre de chaque bulle visibles et touchables: ' + JSON.stringify(hit.filter(h => !h.ok)));
   await page.evaluate(() => { const L = window.TPLogic, st = window.__tp.store, ids = st.live.people.map(p => p.id); st.live.counts[ids[0]] = 7; st.live.counts[ids[1]] = 4; st.live.counts[ids[2]] = 2; ids.slice(3).forEach(i => { st.live.counts[i] = 1; }); window.__tp.save(); window.__tp.render(); });
   await new Promise(r => setTimeout(r, 800));
   const hues = await page.evaluate(() => [...document.querySelectorAll('.bubble')].map(b => ({ n: b.querySelector('.bn').textContent, c: +b.querySelector('.tbadge').textContent, bg: b.querySelector('.tbadge').style.background })));

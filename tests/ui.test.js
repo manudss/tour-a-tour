@@ -108,6 +108,13 @@ let step = 0;
 
   // 8. pause / reprise
   await click('#pz'); await adv(20000);
+  const pb = await page.evaluate(() => [...document.querySelectorAll('#panel .row .btn')].map(b => b.textContent.trim()));
+  assert(pb.some(x => x.includes('Reprendre')) && pb.some(x => x.includes('Fin')), 'en pause: Reprendre et Fin visibles: ' + pb.join('|'));
+  await shot('pause-reprendre-fin');
+  await click('#panel [data-act=endask]');
+  assert((await text()).includes('Terminer la session ?'), 'Fin en pause propose de terminer');
+  await click('[data-act=dlgbtn][data-i="1"]');
+  assert(await page.evaluate(() => !!window.__tp.store.live), 'Continuer garde la session');
   const before = await page.evaluate(() => window.__tp.store.live.current.acc);
   await adv(20000);
   assert.strictEqual(await page.evaluate(() => window.__tp.store.live.current.acc), before, 'pause fige le temps');
@@ -127,11 +134,18 @@ let step = 0;
   assert((await text()).includes('Julie'), 'session sauvegardée');
 
   // 11. fin + bilan
-  await click('[data-act=menu]'); await click('[data-act=endask]'); await click('[data-act=dlgbtn][data-i="0"]');
+  const nSess = await page.evaluate(() => window.__tp.store.sessions.length);
+  await shot('live-avec-fin');
+  await click('#panel [data-act=endask]'); await shot('fin-confirmation');
+  await click('[data-act=dlgbtn][data-i="0"]');
   await new Promise(r => setTimeout(r, 500));
-  t = await text(); assert(t.includes('Bilan') && !t.toLowerCase().includes('équilibre'), 'bilan sans score');
+  t = await text(); assert(t.includes('Bilan') && !t.toLowerCase().includes('équilibre'), 'Fin termine la session et affiche le bilan sans score');
   await shot('bilan');
-  await click('[data-act=home]');
+  assert.strictEqual(await page.evaluate(() => window.__tp.store.sessions.length), nSess + 1, 'la session terminée est ajoutée à l\'historique');
+  assert(await page.evaluate(() => window.__tp.store.live === null), 'plus de session en cours');
+  await page.reload(); await new Promise(r => setTimeout(r, 600));
+  const persisted = await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('tp:data')); return { n: d.sessions.length, live: !!d.live }; });
+  assert(persisted.n === nSess + 1 && !persisted.live, 'historique conservé après rechargement: ' + JSON.stringify(persisted));
 
   // 12. tableau de bord, filtres
   await click('[data-act=dash]');

@@ -229,8 +229,11 @@
     }
     var sugHtml = sp ? '<div class="suggest"><div class="sa">' + avatarHtml(sp.avatar, 40) + '</div><div class="st"><b>' + esc(sp.name) + '</b> ' + (totals[sp.id] === 0 && !s.counts[sp.id] ? 'n\'a pas encore parlé' : 'a parlé ' + L.mmss(totals[sp.id])) + (rk.newRound ? '<br>Nouveau tour : tout le monde est reproposé' : '') + '</div>' +
       (rk.order.length > 1 ? '<button class="pass" data-act="skip">Passer</button>' : '') + '</div>' : '';
-    panel = sugHtml + '<div class="row"><button class="btn accent" data-act="next" style="flex:1">Personne suivante ›</button>' + (cur ? '<button class="btn" data-act="stopturn" style="width:auto;padding:14px 16px">Fin</button>' : '') + '</div>';
-    var sigP = sugHtml + panel + (cur ? 'c' : 'n');
+    var main = (cur && !running) ?
+      '<button class="btn accent" data-act="pausetog" style="flex:1">▶ Reprendre</button>' :
+      '<button class="btn accent" data-act="next" style="flex:1">Personne suivante ›</button>';
+    panel = sugHtml + '<div class="row">' + main + (cur && running ? '<button class="btn" data-act="stopturn" style="width:auto;padding:14px 12px;font-size:15px">Silence</button>' : '') + '<button class="btn" data-act="endask" style="width:auto;padding:14px 16px">■ Fin</button></div>';
+    var sigP = sugHtml + panel + (cur ? (running ? 'c' : 'p') : 'n');
     var holder = document.getElementById('panel');
     if (sigP !== lastPanel) { holder.innerHTML = '<div id="tm"></div>' + panel; lastPanel = sigP; }
     document.getElementById('tm').innerHTML = timerHtml;
@@ -373,7 +376,7 @@
       case 'speak': mutate(function (x) { return L.startTurn(x, id, now()); }); break;
       case 'next': mutate(function (x) { return L.nextPerson(x, now()); }); break;
       case 'skip': store.live = L.skipSuggestion(s); save(); updateLive(); break;
-      case 'stopturn': mutate(function (x) { return L.stopTurn(x, now()); }); showToast('Prise de parole terminée', true); break;
+      case 'stopturn': mutate(function (x) { return L.stopTurn(x, now()); }); showToast('Plus personne ne parle', true); break;
       case 'pausetog': mutate(function (x) { return L.isRunning(x) ? L.pause(x, now()) : L.resume(x, now()); }); break;
       case 'undo': doUndo(); break;
       case 'endask': ui.menu = false;

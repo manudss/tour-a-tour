@@ -28,7 +28,7 @@
     if (ui.menu) { ui.menu = false; render(); return true; }
     if (ui.screen === 'home') return false;
     if (ui.screen === 'live') { ui.menu = true; render(); return true; }
-    if (ui.screen === 'summary') { go('home'); return true; }
+    if (ui.screen === 'summary') { go(ui.summaryFrom === 'dash' ? 'dash' : 'home'); return true; }
     if (ui.screen === 'editor') { go(ui.from === 'setup' ? 'setup' : 'home'); return true; }
     go('home'); return true;
   };
@@ -256,7 +256,7 @@
   function endSession() {
     var res = L.finish(store.live, now());
     store.sessions.push(res); store.live = null; store.undo = null; save(); bridge(false);
-    ui.summary = res; ui.menu = false; go('summary');
+    ui.summary = res; ui.summaryFrom = null; ui.menu = false; go('summary');
   }
 
   /* ---------- Bilan ---------- */
@@ -264,12 +264,15 @@
     var r = ui.summary, ppl = r.people.slice().sort(function (a, b) { return b.ms - a.ms; });
     var total = r.people.reduce(function (a, p) { return a + p.ms; }, 0), mx = Math.max.apply(null, ppl.map(function (p) { return p.ms; }).concat([1]));
     var h = '<div class="screen"><div class="topbar"><span style="width:44px"></span><h1>Bilan</h1><span style="width:44px"></span></div><div class="scroll">';
+    if (ui.summaryFrom === 'dash') h += '<div class="sub" style="text-align:center;font-weight:800">' + esc(fmtDate(r.startedAt)) + '</div>';
     h += '<div class="sub" style="text-align:center">Session de ' + L.mmss(r.endedAt - r.startedAt) + ' · ' + r.people.length + ' personnes</div>';
     h += '<div class="stats"><div class="stat"><b>' + L.mmss(total) + '</b><span>parole cumulée</span></div><div class="stat"><b>' + r.people.reduce(function (a, p) { return a + p.turns; }, 0) + '</b><span>prises</span></div><div class="stat"><b>' + (r.rounds || 1) + '</b><span>tour(s)</span></div></div>';
     h += '<div class="cluster" id="scl" style="height:230px"></div><div class="table"><div class="th"><span style="flex:1">Qui</span><span class="c1">Temps</span><span class="c3">Prises</span></div>';
     h += ppl.map(function (p) {
       return '<div class="tr"><div style="width:34px">' + avatarHtml(p.avatar, 32) + '</div><div class="n">' + esc(p.name) + (p.guest ? ' <i style="font-weight:600">(invité)</i>' : '') + '<div class="bar" style="width:' + Math.round(p.ms / mx * 100) + '%;background:' + bdFor(p.avatar) + ';margin-top:2px;min-width:3px"></div></div><div class="c1">' + L.mmss(p.ms) + '</div><div class="c3">' + p.turns + '</div></div>';
-    }).join('') + '</div></div><div class="footer"><button class="btn primary" data-act="home">Terminer</button></div></div>';
+    }).join('') + '</div></div>' + (ui.summaryFrom === 'dash' ?
+      '<div class="footer"><div class="row"><button class="btn" data-act="delsess" style="color:#b3261e;border-color:#b3261e">Supprimer</button><button class="btn primary" data-act="back">‹ Retour</button></div></div></div>' :
+      '<div class="footer"><button class="btn primary" data-act="home">Terminer</button></div></div>');
     return h;
   }
   function clusterInto(id, list, tkey) {
@@ -287,6 +290,19 @@
   }
   function summaryCluster() { clusterInto('scl', ui.summary.people, 'ms'); }
 
+  function fmtDate(t) {
+    try { return new Date(t).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+  }
+  function sessKey(x) { return x.id || String(x.startedAt); }
+  function sessionList() {
+    var list = store.sessions.slice().sort(function (a, b) { return b.startedAt - a.startedAt; });
+    var h = '<h2 style="margin-top:18px">Toutes les sessions (' + list.length + ')</h2>';
+    if (!list.length) return h + '<div class="empty" style="padding:10px">Aucune session enregistrée.</div>';
+    return h + list.map(function (x) {
+      var tot = x.people.reduce(function (a, p) { return a + p.ms; }, 0);
+      return '<button class="sessrow" data-act="opensess" data-id="' + esc(sessKey(x)) + '"><span class="sd">' + esc(fmtDate(x.startedAt)) + '</span><span class="ss">' + x.people.length + ' pers. · parole ' + fmtTot(tot) + ' · durée ' + fmtTot(x.endedAt - x.startedAt) + '</span><span class="sg">›</span></button>';
+    }).join('');
+  }
   function fmtTot(ms) { return ms >= 3600000 ? L.hm(ms) : L.mmss(ms); }
   /* ---------- Tableau de bord ---------- */
   function dash() {
@@ -303,6 +319,7 @@
         return '<div class="tr"><div style="width:34px">' + avatarHtml(p.avatar, 32) + '</div><div class="n">' + esc(p.name) + '</div><div class="c1">' + fmtTot(p.ms) + '</div><div class="c2">' + (p.turns ? L.mmss(p.avgMs) : '–') + '</div><div class="c3">' + p.turns + '</div></div>';
       }).join('') + '</div>';
     }
+    h += sessionList();
     h += '</div></div>';
     return h;
   }
@@ -342,6 +359,14 @@
     switch (act) {
       case 'closemenu': if (ev.target === t) { ui.menu = false; render(); } break;
       case 'dlgbtn': var b = ui.dlg.buttons[+t.getAttribute('data-i')]; closeDlg(); if (b.fn) b.fn(); break;
+      case 'opensess':
+        var ss = store.sessions.filter(function (x) { return sessKey(x) === id; })[0];
+        if (ss) { ui.summary = ss; ui.summaryFrom = 'dash'; go('summary'); } break;
+      case 'delsess':
+        var sk = ui.summary && sessKey(ui.summary);
+        dialog('Supprimer cette session ?', 'Elle disparaît de la liste et ses temps sont retirés des statistiques. Cette action est définitive.', [
+          { label: 'Supprimer', cls: 'primary', fn: function () { store.sessions = store.sessions.filter(function (x) { return sessKey(x) !== sk; }); save(); ui.summary = null; ui.summaryFrom = null; go('dash'); } }, { label: 'Garder' }]);
+        break;
       case 'back': window.__back(); break;
       case 'home': go('home'); break;
       case 'settings': go('settings'); break;

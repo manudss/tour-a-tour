@@ -159,6 +159,32 @@ let step = 0;
   await shot('dashboard-tous-semaine');
   await click('[data-act=back]');
 
+  // 12b. historique des sessions : rouvrir un bilan, supprimer avec confirmation, stats recalculées
+  await page.evaluate(() => { const S = window.__tp.store; const c = JSON.parse(JSON.stringify(S.sessions[S.sessions.length - 1])); c.id = 'ancienne-test'; c.startedAt -= 3 * 86400000; c.endedAt -= 3 * 86400000; S.sessions.push(c); window.__tp.save(); });
+  await page.reload(); await new Promise(r => setTimeout(r, 600));
+  await click('[data-act=dash]'); await click('[data-act=dfav][data-v="0"]'); await click('[data-act=dper][data-v=all]');
+  const statNums = () => page.evaluate(() => [...document.querySelectorAll('.stats .stat b')].map(b => b.textContent));
+  const nBefore = await page.evaluate(() => window.__tp.store.sessions.length);
+  const stBefore = await statNums();
+  assert(+stBefore[0] === nBefore, 'stats: nombre de sessions = ' + nBefore + ' (obtenu ' + stBefore[0] + ')');
+  const listRows = await page.evaluate(() => document.querySelectorAll('.sessrow').length);
+  assert.strictEqual(listRows, nBefore, 'toutes les sessions sont listées');
+  await shot('dashboard-historique');
+  await click('.sessrow[data-id=ancienne-test]');
+  t = await text(); assert(t.includes('Bilan') && t.includes('Supprimer') && t.includes('Retour'), 'bilan de la session rouvert');
+  await shot('historique-bilan');
+  await click('[data-act=delsess]'); await shot('historique-suppression');
+  await click('[data-act=dlgbtn][data-i="1"]');
+  assert.strictEqual(await page.evaluate(() => window.__tp.store.sessions.length), nBefore, 'Garder ne supprime pas');
+  await click('[data-act=delsess]'); await click('[data-act=dlgbtn][data-i="0"]');
+  assert.strictEqual(await page.evaluate(() => window.__tp.store.sessions.length), nBefore - 1, 'session supprimée');
+  const stAfter = await statNums();
+  assert(+stAfter[0] === nBefore - 1 && stAfter[1] !== stBefore[1], 'stats agrégées recalculées: ' + stBefore.join('/') + ' -> ' + stAfter.join('/'));
+  assert.strictEqual(await page.evaluate(() => document.querySelectorAll('.sessrow').length), nBefore - 1, 'liste mise à jour');
+  await page.reload(); await new Promise(r => setTimeout(r, 600));
+  assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('tp:data')).sessions.length), nBefore - 1, 'suppression conservée après rechargement');
+  await click('[data-act=dash]'); await click('[data-act=back]');
+
   // 13. 14 personnes dans une session
   await page.evaluate(() => {
     const L = window.TPLogic, st = window.__tp.store;

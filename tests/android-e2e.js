@@ -47,6 +47,31 @@ const shot = n => { sh(`adb exec-out screencap -p > e2e-out/${n}.png`); };
 
 (async () => {
   sh('adb wait-for-device'); sh('adb shell pm uninstall ' + PKG + ' || true');
+  if (fs.existsSync('build/prev.apk')) {
+    // Mise à jour par-dessus la version précédente : mêmes données, même signature.
+    console.log(sh('adb install -r build/prev.apk'));
+    launch(); await sleep(3000);
+    let c0 = await connect();
+    await c0.p.evaluate(() => { document.querySelector('[data-act=newp]').click(); });
+    await c0.p.type('#nm', 'Ancien'); await c0.p.evaluate(() => document.querySelector('[data-act=savep]').click());
+    const avant = await c0.p.evaluate(() => JSON.parse(localStorage.getItem('tp:data')).people.map(x => x.name));
+    check('version précédente installée avec une personne créée', avant.includes('Ancien'), JSON.stringify(avant));
+    await c0.b.disconnect(); sh(`adb shell am force-stop ${PKG}`); await sleep(1500);
+    let upd = ''; try { upd = sh(`adb install -r ${APK} 2>&1`); } catch (e) { upd = String(e.stdout || e.message); }
+    console.log(upd);
+    check('installation par-dessus la précédente (même signature)', /Success/.test(upd), upd.slice(0, 160));
+    const vc = sh(`adb shell dumpsys package ${PKG} | grep -E "versionCode|versionName" | head -2`);
+    check('nouvelle version en place', /versionCode=2/.test(vc), vc);
+    launch(); await sleep(3000);
+    c0 = await connect();
+    const apres = await c0.p.evaluate(() => JSON.parse(localStorage.getItem('tp:data')).people.map(x => x.name));
+    check('données conservées après la mise à jour', apres.includes('Ancien'), JSON.stringify(apres));
+    await c0.p.evaluate(() => { document.querySelector('[data-act=newp]').click(); });
+    const g = await c0.p.evaluate(() => { const r = [...document.querySelectorAll('[data-act=preset]')].map(b => b.innerHTML); return { n: r.length, uniq: new Set(r).size, sel: document.querySelectorAll('.pgrid .sel').length }; });
+    check('éditeur : modèles tous différents et une seule case sélectionnée', g.n >= 16 && g.uniq === g.n && g.sel === 1, JSON.stringify(g));
+    shot('00-editeur-apres-mise-a-jour');
+    await c0.b.disconnect(); sh(`adb shell am force-stop ${PKG}`); sh('adb shell pm uninstall ' + PKG + ' || true');
+  }
   console.log(sh(`adb install -r ${APK}`));
   launch(); await sleep(3000);
   let { b, p } = await connect();

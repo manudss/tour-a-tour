@@ -13,7 +13,7 @@ rm -rf "$OUT"; mkdir -p "$OUT/classes" "$OUT/res-compiled" "$OUT/dex"
 "$BT/aapt2" compile --dir app/src/main/res -o "$OUT/res-compiled"
 "$BT/aapt2" link -o "$OUT/base.apk" -I "$PLAT" \
   --manifest app/src/main/AndroidManifest.xml -A app/src/main/assets \
-  --min-sdk-version 24 --target-sdk-version 34 --version-code 1 --version-name 1.0 \
+  --min-sdk-version 24 --target-sdk-version 34 --version-code 2 --version-name 1.0.1 \
   --java "$OUT/gen" "$OUT/res-compiled"/*.flat
 javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -classpath "$PLAT" -d "$OUT/classes" \
   $(find app/src/main/java "$OUT/gen" -name '*.java')

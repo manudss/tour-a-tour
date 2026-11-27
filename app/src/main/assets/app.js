@@ -100,7 +100,7 @@
     h += '<input class="field" id="nm" placeholder="Prénom" maxlength="20" value="' + esc(e.name) + '" autocomplete="off">';
     h += '<div class="chips">' + A.CATS.map(function (c) { return '<button class="chip warm' + (e.cat === c[0] ? ' sel' : '') + '" data-act="cat" data-c="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="pgrid">' + A.PRESETS.filter(function (p) { return e.cat === 'all' || p.cat === e.cat; }).map(function (p) {
-      var cur = a.style === p.style && !!a.child === !!p.child && !!a.glasses === !!p.glasses;
+      var cur = A.shapeKey(a) === A.shapeKey(p);
       return '<button class="' + (cur ? 'sel' : '') + '" data-act="preset" data-id="' + p.id + '" aria-label="Modèle">' + avatarHtml({ style: p.style, child: p.child, glasses: p.glasses, skin: a.skin, hair: a.hair, shirt: a.shirt }, 54) + '</button>';
     }).join('') + '</div>';
     h += swatchRow('Peau', A.SKIN, 'skin', a.skin) + swatchRow('Cheveux', A.HAIR, 'hair', a.hair) + swatchRow('T-shirt', A.SHIRT, 'shirt', a.shirt);

@@ -6,19 +6,26 @@
   var SHIRT = ['#FFB44D', '#FF7A8A', '#F28A4B', '#8E7CE8', '#4CC49A', '#5AA9F0'];
   var CATS = [['all', 'Tous'], ['enfant', 'Enfants'], ['ado', 'Ados'], ['adulte', 'Adultes'], ['aine', 'Aînés']];
   var PRESETS = [
-    { id: 'e1', cat: 'enfant', style: 'pig', child: true, skin: 0, hair: 2, shirt: 1 },
-    { id: 'e2', cat: 'enfant', style: 'curly', child: true, skin: 3, hair: 0, shirt: 4 },
-    { id: 'e3', cat: 'enfant', style: 'pony', child: true, skin: 1, hair: 1, shirt: 3 },
-    { id: 'a1', cat: 'ado', style: 'short', skin: 4, hair: 0, shirt: 0 },
-    { id: 'a2', cat: 'ado', style: 'long', skin: 2, hair: 0, shirt: 5 },
-    { id: 'a3', cat: 'ado', style: 'curly', skin: 5, hair: 0, shirt: 2 },
-    { id: 'd1', cat: 'adulte', style: 'short', skin: 1, hair: 0, shirt: 2 },
-    { id: 'd2', cat: 'adulte', style: 'bun', glasses: true, skin: 0, hair: 5, shirt: 3 },
-    { id: 'd3', cat: 'adulte', style: 'long', skin: 0, hair: 1, shirt: 4 },
-    { id: 'o1', cat: 'aine', style: 'bun', glasses: true, skin: 0, hair: 4, shirt: 3 },
-    { id: 'o2', cat: 'aine', style: 'bald', glasses: true, skin: 2, hair: 4, shirt: 5 },
-    { id: 'o3', cat: 'aine', style: 'short', glasses: true, skin: 3, hair: 4, shirt: 1 }
+    { id: 'e1', cat: 'enfant', style: 'pig', child: true },
+    { id: 'e2', cat: 'enfant', style: 'curly', child: true },
+    { id: 'e3', cat: 'enfant', style: 'pony', child: true },
+    { id: 'e4', cat: 'enfant', style: 'short', child: true },
+    { id: 'a1', cat: 'ado', style: 'short' },
+    { id: 'a2', cat: 'ado', style: 'long' },
+    { id: 'a3', cat: 'ado', style: 'curly' },
+    { id: 'a4', cat: 'ado', style: 'pony' },
+    { id: 'd1', cat: 'adulte', style: 'bun' },
+    { id: 'd2', cat: 'adulte', style: 'long', glasses: true },
+    { id: 'd3', cat: 'adulte', style: 'short', glasses: true },
+    { id: 'd4', cat: 'adulte', style: 'curly', glasses: true },
+    { id: 'o1', cat: 'aine', style: 'bun', glasses: true },
+    { id: 'o2', cat: 'aine', style: 'bald', glasses: true },
+    { id: 'o3', cat: 'aine', style: 'bald' },
+    { id: 'o4', cat: 'aine', style: 'pony', glasses: true }
   ];
+  /* Clé de silhouette: deux modèles ne doivent jamais avoir la même. */
+  function shapeKey(a) { return (a.style || 'short') + '|' + (a.child ? 'c' : 'a') + '|' + (a.glasses ? 'g' : 'n'); }
+
 
   function norm(a) {
     a = a || {};
@@ -69,5 +76,5 @@
       eyes + gl + mouth + '</svg>';
   }
 
-  root.TPAvatar = { SKIN: SKIN, HAIR: HAIR, SHIRT: SHIRT, CATS: CATS, PRESETS: PRESETS, svg: svg, norm: norm };
+  root.TPAvatar = { SKIN: SKIN, HAIR: HAIR, SHIRT: SHIRT, CATS: CATS, PRESETS: PRESETS, shapeKey: shapeKey, svg: svg, norm: norm };
 })(typeof self !== 'undefined' ? self : this);

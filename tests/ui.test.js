@@ -38,7 +38,17 @@ let step = 0;
     await click(`[data-act=cat][data-c=${cat}]`);
     const ids = await page.evaluate(() => [...document.querySelectorAll('[data-act=preset]')].map(b => b.dataset.id));
     await click(`[data-act=preset][data-id=${ids[i]}]`);
-    if (n === 'Maman') await shot('editeur');
+    if (n === 'Maman') {
+      await shot('editeur');
+      const sels = await page.evaluate(() => document.querySelectorAll('.pgrid .sel').length);
+      assert(sels === 1, 'une seule case sélectionnée dans la grille, trouvé ' + sels);
+      await click('[data-act=cat][data-c=all]');
+      const rend = await page.evaluate(() => [...document.querySelectorAll('[data-act=preset]')].map(b => b.innerHTML));
+      assert(rend.length >= 16 && new Set(rend).size === rend.length, 'tous les modèles sont différents à l\'écran');
+      const sels2 = await page.evaluate(() => document.querySelectorAll('.pgrid .sel').length);
+      assert(sels2 === 1, 'une seule case sélectionnée (Tous), trouvé ' + sels2);
+      await shot('editeur-tous');
+    }
     if (!fav) await click('[data-act=togfav]');
     await click('[data-act=savep]');
   }

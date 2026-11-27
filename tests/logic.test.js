@@ -126,3 +126,13 @@ test('une personne à 0:00 a une bulle plus petite que celle qui a parlé', () =
   const radii = L.bubbleRadii({ a: 0, b: 300000 }, null, 358, 420);
   assert.ok(radii.a < radii.b);
 });
+
+test('les modèles d avatar sont tous distincts (silhouette et rendu)', () => {
+  const A = require('../app/src/main/assets/avatar.js').TPAvatar;
+  const keys = A.PRESETS.map(A.shapeKey);
+  assert.strictEqual(new Set(keys).size, A.PRESETS.length, 'deux modèles ont la même silhouette');
+  assert.strictEqual(new Set(A.PRESETS.map(p => p.id)).size, A.PRESETS.length);
+  const rendus = A.PRESETS.map(p => A.svg({ style: p.style, child: p.child, glasses: p.glasses, skin: 1, hair: 0, shirt: 0 }, 54));
+  assert.strictEqual(new Set(rendus).size, A.PRESETS.length, 'deux modèles se ressemblent à l identique');
+  assert.ok(A.PRESETS.length >= 16);
+});

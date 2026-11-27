@@ -2,13 +2,15 @@
 
 ## Fonctionnement
 - Chaque PR fusionnée dans `main` par le propriétaire déclenche le workflow `android` (tests de logique, build APK + AAB, test sur émulateurs Android 14 et 16, test de mise à jour par-dessus la version précédente).
-- Si, et seulement si, ce workflow est vert sur le commit de fusion exact, `release-after-merge.yml` publie une release GitHub stable `v1.0.N` avec:
+- Si, et seulement si, ce workflow est vert sur le commit de fusion exact, le job `publish` de `android.yml` publie une release GitHub stable `v1.0.N` avec:
   `tour-a-tour.apk` (nom fixe, lien `releases/latest/download/tour-a-tour.apk`), `tour-a-tour-1.0.N.apk`, `tour-a-tour-1.0.N.aab` (pour Google Play) et `SHA256SUMS.txt`.
 - Versions: `1.0.N`, code Android `100000 + N`. N = plus grand N existant + 1 (brouillons réservés, pré-releases `-test` ignorées). Un commit déjà publié garde sa version. Une release existante n'est jamais remplacée. La release est créée en brouillon, publiée seulement après envoi complet des fichiers.
 - Aucun push direct, aucune PR non fusionnée, aucun build rouge ne publie.
 - Le workflow refuse de publier si la clé de signature est absente (jamais de clé de débogage) ou si l'empreinte du certificat n'est pas celle épinglée.
 - Les notes de release reprennent le titre et la description de la PR fusionnée.
 - Pré-releases de test (`vX-test`): sur demande explicite seulement, publiées à la main.
+
+Note: le job de publication vit dans `android.yml` (et non dans un workflow `workflow_run`), car un déclencheur `workflow_run` ne fonctionne que si le fichier est sur la branche par défaut du dépôt, ici `feat/app-v1` et non `main`.
 
 ## Ce que garde le propriétaire
 - La fusion des PR et la mise en ligne sur Google Play (envoi de l'AAB, fiche, déclarations, soumission à l'examen).

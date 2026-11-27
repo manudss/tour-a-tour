@@ -132,7 +132,24 @@ test('les modèles d avatar sont tous distincts (silhouette et rendu)', () => {
   const keys = A.PRESETS.map(A.shapeKey);
   assert.strictEqual(new Set(keys).size, A.PRESETS.length, 'deux modèles ont la même silhouette');
   assert.strictEqual(new Set(A.PRESETS.map(p => p.id)).size, A.PRESETS.length);
-  const rendus = A.PRESETS.map(p => A.svg({ style: p.style, child: p.child, glasses: p.glasses, skin: 1, hair: 0, shirt: 0 }, 54));
+  const rendus = A.PRESETS.map(p => A.svg({ style: p.style, child: p.child, glasses: p.glasses, beard: p.beard, skin: 1, hair: 0, shirt: 0 }, 54));
   assert.strictEqual(new Set(rendus).size, A.PRESETS.length, 'deux modèles se ressemblent à l identique');
-  assert.ok(A.PRESETS.length >= 16);
+  assert.ok(A.PRESETS.length >= 32 && A.SHIRT.length >= 12);
+});
+
+test('badge de tours: pause ne crée pas de faux tour, teinte selon l écart à la moyenne', () => {
+  const mk = (counts, cur) => ({ people: Object.keys(counts).map(id => ({ id })), counts, current: cur || null, durationMs: 60000 });
+  assert.strictEqual(L.turnHue(mk({ a: 2, b: 2, c: 2 }), 'a', 0), 130);
+  const dom = mk({ a: 6, b: 1, c: 1 });
+  assert.strictEqual(L.turnHue(dom, 'a', 0), 0);
+  assert.strictEqual(L.turnHue(dom, 'b', 0), 130);
+  const mid = L.turnHue(mk({ a: 3, b: 2, c: 1, d: 2 }), 'a', 0);
+  assert.ok(mid > 0 && mid <= 130);
+  const run = mk({ a: 1, b: 0 }, { pid: 'b', acc: 0, resumedAt: 0 });
+  assert.strictEqual(L.turnCount(run, 'b', 500), 0);
+  assert.strictEqual(L.turnCount(run, 'b', 2000), 1);
+  const p = L.pause(run, 2000), r = L.resume(p, 9000);
+  assert.strictEqual(L.turnCount(p, 'b', 8000), 1);
+  assert.strictEqual(L.turnCount(r, 'b', 9500), 1);
+  assert.strictEqual(r.counts.b, 0);
 });

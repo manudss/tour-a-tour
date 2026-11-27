@@ -44,10 +44,20 @@ let step = 0;
       assert(sels === 1, 'une seule case sélectionnée dans la grille, trouvé ' + sels);
       await click('[data-act=cat][data-c=all]');
       const rend = await page.evaluate(() => [...document.querySelectorAll('[data-act=preset]')].map(b => b.innerHTML));
-      assert(rend.length >= 16 && new Set(rend).size === rend.length, 'tous les modèles sont différents à l\'écran');
+      assert(rend.length >= 32 && new Set(rend).size === rend.length, 'tous les modèles sont différents à l\'écran');
       const sels2 = await page.evaluate(() => document.querySelectorAll('.pgrid .sel').length);
       assert(sels2 === 1, 'une seule case sélectionnée (Tous), trouvé ' + sels2);
       await shot('editeur-tous');
+      const sw = await page.evaluate(async () => {
+        const all = [...document.querySelectorAll('.sw[data-key=shirt]')];
+        const last = all[all.length - 1]; last.scrollIntoView({ block: 'center' });
+        await new Promise(r => setTimeout(r, 300));
+        const rr = last.getBoundingClientRect(), top = document.elementFromPoint(rr.x + rr.width / 2, rr.y + rr.height / 2);
+        const ft = document.querySelector('.footer, .foot, #foot, [data-act=savep]');
+        return { n: all.length, reachable: top === last, bottom: rr.bottom, vh: innerHeight, footTop: ft ? ft.getBoundingClientRect().top : null };
+      });
+      assert(sw.n >= 12 && sw.reachable, 'les 12 couleurs de tee-shirt sont atteignables en défilant: ' + JSON.stringify(sw));
+      await shot('editeur-couleurs-defilement');
     }
     if (!fav) await click('[data-act=togfav]');
     await click('[data-act=savep]');
@@ -111,6 +121,26 @@ let step = 0;
   const pb = await page.evaluate(() => [...document.querySelectorAll('#panel .row .btn')].map(b => b.textContent.trim()));
   assert(pb.some(x => x.includes('Reprendre')) && pb.some(x => x.includes('Fin')), 'en pause: Reprendre et Fin visibles: ' + pb.join('|'));
   await shot('pause-reprendre-fin');
+  const hit = await page.evaluate(() => {
+    const out = [];
+    document.querySelectorAll('.bubble').forEach(b => {
+      ['.tbadge', '.bn'].forEach(sel => {
+        const e = b.querySelector(sel); if (!e) return;
+        const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        out.push({ sel, name: b.querySelector('.bn').textContent, ok: !!top && b.contains(top) });
+      });
+      const r = b.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      out.push({ sel: 'centre', name: b.querySelector('.bn').textContent, ok: !!top && b.contains(top) });
+    });
+    return out;
+  });
+  assert(hit.length && hit.every(h => h.ok), 'badge, nom et centre de chaque bulle visibles et touchables: ' + JSON.stringify(hit.filter(h => !h.ok)));
+  await page.evaluate(() => { const L = window.TPLogic, st = window.__tp.store, ids = st.live.people.map(p => p.id); st.live.counts[ids[0]] = 7; st.live.counts[ids[1]] = 4; st.live.counts[ids[2]] = 2; ids.slice(3).forEach(i => { st.live.counts[i] = 1; }); window.__tp.save(); window.__tp.render(); });
+  await new Promise(r => setTimeout(r, 800));
+  const hues = await page.evaluate(() => [...document.querySelectorAll('.bubble')].map(b => ({ n: b.querySelector('.bn').textContent, c: +b.querySelector('.tbadge').textContent, bg: b.querySelector('.tbadge').style.background })));
+  console.log(JSON.stringify(hues));
+  await shot('badges-desequilibre');
+  await page.evaluate(() => { const st = window.__tp.store; st.live.counts = JSON.parse(JSON.stringify(st.live.counts)); });
   await click('#panel [data-act=endask]');
   assert((await text()).includes('Terminer la session ?'), 'Fin en pause propose de terminer');
   await click('[data-act=dlgbtn][data-i="1"]');
@@ -158,6 +188,32 @@ let step = 0;
   await click('[data-act=dper][data-v=week]');
   await shot('dashboard-tous-semaine');
   await click('[data-act=back]');
+
+  // 12b. historique des sessions : rouvrir un bilan, supprimer avec confirmation, stats recalculées
+  await page.evaluate(() => { const S = window.__tp.store; const c = JSON.parse(JSON.stringify(S.sessions[S.sessions.length - 1])); c.id = 'ancienne-test'; c.startedAt -= 3 * 86400000; c.endedAt -= 3 * 86400000; S.sessions.push(c); window.__tp.save(); });
+  await page.reload(); await new Promise(r => setTimeout(r, 600));
+  await click('[data-act=dash]'); await click('[data-act=dfav][data-v="0"]'); await click('[data-act=dper][data-v=all]');
+  const statNums = () => page.evaluate(() => [...document.querySelectorAll('.stats .stat b')].map(b => b.textContent));
+  const nBefore = await page.evaluate(() => window.__tp.store.sessions.length);
+  const stBefore = await statNums();
+  assert(+stBefore[0] === nBefore, 'stats: nombre de sessions = ' + nBefore + ' (obtenu ' + stBefore[0] + ')');
+  const listRows = await page.evaluate(() => document.querySelectorAll('.sessrow').length);
+  assert.strictEqual(listRows, nBefore, 'toutes les sessions sont listées');
+  await shot('dashboard-historique');
+  await click('.sessrow[data-id=ancienne-test]');
+  t = await text(); assert(t.includes('Bilan') && t.includes('Supprimer') && t.includes('Retour'), 'bilan de la session rouvert');
+  await shot('historique-bilan');
+  await click('[data-act=delsess]'); await shot('historique-suppression');
+  await click('[data-act=dlgbtn][data-i="1"]');
+  assert.strictEqual(await page.evaluate(() => window.__tp.store.sessions.length), nBefore, 'Garder ne supprime pas');
+  await click('[data-act=delsess]'); await click('[data-act=dlgbtn][data-i="0"]');
+  assert.strictEqual(await page.evaluate(() => window.__tp.store.sessions.length), nBefore - 1, 'session supprimée');
+  const stAfter = await statNums();
+  assert(+stAfter[0] === nBefore - 1 && stAfter[1] !== stBefore[1], 'stats agrégées recalculées: ' + stBefore.join('/') + ' -> ' + stAfter.join('/'));
+  assert.strictEqual(await page.evaluate(() => document.querySelectorAll('.sessrow').length), nBefore - 1, 'liste mise à jour');
+  await page.reload(); await new Promise(r => setTimeout(r, 600));
+  assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('tp:data')).sessions.length), nBefore - 1, 'suppression conservée après rechargement');
+  await click('[data-act=dash]'); await click('[data-act=back]');
 
   // 13. 14 personnes dans une session
   await page.evaluate(() => {

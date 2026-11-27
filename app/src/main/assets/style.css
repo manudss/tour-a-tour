@@ -37,9 +37,9 @@ h2 { font-size:13px; font-weight:800; color:var(--ink2); letter-spacing:.04em; t
 .chip { border-radius:16px; padding:8px 13px; font-size:13px; font-weight:800; background:#fff; border:none; color:var(--ink); min-height:40px; }
 .chip.sel { background:var(--ink); color:#fff; }
 .chip.warm.sel { background:var(--gold); color:var(--ink); }
-.swatches { display:flex; align-items:center; gap:8px; margin:8px 0; }
+.swatches { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:8px 0; }
 .swatches .lab { width:72px; font-size:12px; font-weight:800; color:var(--ink2); }
-.sw { width:36px; height:36px; border-radius:50%; border:2px solid #fff; }
+.sw { width:34px; height:34px; border-radius:50%; border:2px solid #fff; }
 .sw.sel { border:3px solid var(--ink); }
 .pgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
 .pgrid button { background:#fff; border:3px solid transparent; border-radius:20px; padding:4px; display:flex; justify-content:center; }

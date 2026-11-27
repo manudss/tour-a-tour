@@ -44,7 +44,7 @@ let step = 0;
       assert(sels === 1, 'une seule case sélectionnée dans la grille, trouvé ' + sels);
       await click('[data-act=cat][data-c=all]');
       const rend = await page.evaluate(() => [...document.querySelectorAll('[data-act=preset]')].map(b => b.innerHTML));
-      assert(rend.length >= 16 && new Set(rend).size === rend.length, 'tous les modèles sont différents à l\'écran');
+      assert(rend.length >= 32 && new Set(rend).size === rend.length, 'tous les modèles sont différents à l\'écran');
       const sels2 = await page.evaluate(() => document.querySelectorAll('.pgrid .sel').length);
       assert(sels2 === 1, 'une seule case sélectionnée (Tous), trouvé ' + sels2);
       await shot('editeur-tous');

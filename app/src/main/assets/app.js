@@ -101,7 +101,7 @@
     h += '<div class="chips">' + A.CATS.map(function (c) { return '<button class="chip warm' + (e.cat === c[0] ? ' sel' : '') + '" data-act="cat" data-c="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="pgrid">' + A.PRESETS.filter(function (p) { return e.cat === 'all' || p.cat === e.cat; }).map(function (p) {
       var cur = A.shapeKey(a) === A.shapeKey(p);
-      return '<button class="' + (cur ? 'sel' : '') + '" data-act="preset" data-id="' + p.id + '" aria-label="Modèle">' + avatarHtml({ style: p.style, child: p.child, glasses: p.glasses, skin: a.skin, hair: a.hair, shirt: a.shirt }, 54) + '</button>';
+      return '<button class="' + (cur ? 'sel' : '') + '" data-act="preset" data-id="' + p.id + '" aria-label="Modèle">' + avatarHtml({ style: p.style, child: p.child, glasses: p.glasses, beard: p.beard, skin: a.skin, hair: a.hair, shirt: a.shirt }, 54) + '</button>';
     }).join('') + '</div>';
     h += swatchRow('Peau', A.SKIN, 'skin', a.skin) + swatchRow('Cheveux', A.HAIR, 'hair', a.hair) + swatchRow('T-shirt', A.SHIRT, 'shirt', a.shirt);
     h += '<div class="card kv" style="margin-top:8px"><span>★ Favori (précoché à chaque session)</span><button class="chip ' + (e.fav ? 'sel' : '') + '" data-act="togfav">' + (e.fav ? 'Oui' : 'Non') + '</button></div>';
@@ -113,7 +113,7 @@
     var cats = { enfant: 'enfant', ado: 'ado', adulte: 'adulte', aine: 'aine' };
     ui.from = from || 'home';
     ui.edit = p ? { id: p.id, name: p.name, avatar: L.clone(p.avatar), fav: !!p.fav, isNew: false, cat: 'all' } :
-      { id: null, name: '', avatar: { style: 'short', skin: 1, hair: 0, shirt: store.people.length % 6 }, fav: true, isNew: true, cat: 'all' };
+      { id: null, name: '', avatar: { style: 'short', skin: 1, hair: 0, shirt: store.people.length % A.SHIRT.length }, fav: true, isNew: true, cat: 'all' };
     void cats; go('editor');
   }
   function saveEdit() {
@@ -378,7 +378,7 @@
       case 'preset':
         e.name = document.getElementById('nm').value;
         var pr = A.PRESETS.filter(function (x) { return x.id === id; })[0];
-        e.avatar.style = pr.style; e.avatar.child = !!pr.child; e.avatar.glasses = !!pr.glasses; render(); break;
+        e.avatar.style = pr.style; e.avatar.child = !!pr.child; e.avatar.glasses = !!pr.glasses; e.avatar.beard = !!pr.beard; render(); break;
       case 'sw': e.name = document.getElementById('nm').value; e.avatar[t.getAttribute('data-key')] = +t.getAttribute('data-i'); render(); break;
       case 'togfav': e.name = document.getElementById('nm').value; e.fav = !e.fav; render(); break;
       case 'savep': saveEdit(); break;

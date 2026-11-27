@@ -132,7 +132,7 @@ test('les modèles d avatar sont tous distincts (silhouette et rendu)', () => {
   const keys = A.PRESETS.map(A.shapeKey);
   assert.strictEqual(new Set(keys).size, A.PRESETS.length, 'deux modèles ont la même silhouette');
   assert.strictEqual(new Set(A.PRESETS.map(p => p.id)).size, A.PRESETS.length);
-  const rendus = A.PRESETS.map(p => A.svg({ style: p.style, child: p.child, glasses: p.glasses, skin: 1, hair: 0, shirt: 0 }, 54));
+  const rendus = A.PRESETS.map(p => A.svg({ style: p.style, child: p.child, glasses: p.glasses, beard: p.beard, skin: 1, hair: 0, shirt: 0 }, 54));
   assert.strictEqual(new Set(rendus).size, A.PRESETS.length, 'deux modèles se ressemblent à l identique');
-  assert.ok(A.PRESETS.length >= 16);
+  assert.ok(A.PRESETS.length >= 32 && A.SHIRT.length >= 12);
 });

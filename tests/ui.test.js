@@ -76,11 +76,23 @@ let step = 0;
   await adv(60000);
   await shot('live-parole-1min');
   t = await text(); assert(/1:\d\d/.test(t), 'compte à rebours');
+  const geo = () => page.evaluate(() => { const g = c => { const e = document.querySelector('.bubble.active svg.ring .' + c); return e ? { r: +e.getAttribute('r'), w: +getComputedStyle(e).strokeWidth.replace('px', ''), da: e.getAttribute('stroke-dasharray') } : null; }; const b = document.querySelector('.bubble.active svg.ring').getBoundingClientRect(); return { prog: g('prog'), prog2: g('prog2'), track: g('track'), w: b.width, h: b.height }; });
+  let gm = await geo();
+  assert(gm.prog && !gm.prog2, 'avant dépassement: un seul arc (orange)');
+  assert(gm.prog.r + gm.prog.w / 2 <= 50, 'anneau entièrement dans sa boîte (pas rogné): ' + JSON.stringify(gm));
 
   // 5. dépassement doux
   await adv(80000);
   t = await text(); assert(t.includes('+0:'), 'dépassement affiché');
   await shot('live-depassement');
+  gm = await geo();
+  assert(gm.prog.da.startsWith('100') && gm.prog2, 'après dépassement: orange complet + arc rouge par-dessus');
+  const f2 = parseFloat(gm.prog2.da);
+  assert(f2 > 10 && f2 < 25, 'arc rouge ≈ 17% (20 s de dépassement sur 120 s): ' + gm.prog2.da);
+  assert(gm.prog2.r + gm.prog2.w / 2 <= 50, 'arc rouge non rogné');
+  await adv(60000);
+  gm = await geo(); assert(parseFloat(gm.prog2.da) > 60 && parseFloat(gm.prog2.da) < 72, 'l\'arc rouge continue: ' + gm.prog2.da);
+  await shot('live-depassement-plus-tard');
 
   // 6. suivante x3 avec temps différents
   for (let i = 0; i < 3; i++) { await click('[data-act=next]'); await adv(30000 + i * 20000); }

@@ -204,7 +204,9 @@
       var inside = '';
       if (isCur) {
         var el0 = L.elapsedCurrent(s, t), over = el0 > s.durationMs, prog = Math.min(1, el0 / s.durationMs) * 100;
-        inside += '<svg class="ring" viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="48" pathLength="100"/><circle class="prog' + (over ? ' over' : '') + '" cx="50" cy="50" r="48" pathLength="100" stroke-dasharray="' + (over ? 100 : prog.toFixed(1)) + ' 100"/></svg>';
+        var x2 = (el0 - s.durationMs) / s.durationMs, f2 = x2 <= 0 ? 0 : (x2 % 1 === 0 ? 1 : x2 % 1), prog2 = f2 * 100;
+        inside += '<svg class="ring" viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="46" pathLength="100"/><circle class="prog" cx="50" cy="50" r="46" pathLength="100" stroke-dasharray="' + (over ? 100 : prog.toFixed(1)) + ' 100"/>' +
+          (over ? '<circle class="prog2" cx="50" cy="50" r="46" pathLength="100" stroke-dasharray="' + Math.max(0.6, prog2).toFixed(1) + ' 100"/>' : '') + '</svg>';
       }
       inside += '<div class="av" style="width:' + asz + 'px;height:' + asz + 'px;margin-top:' + Math.round(r * 0.04) + 'px">' + avatarHtml(p.avatar, asz, isCur && running) + '</div>';
       inside += '<div class="bn" style="font-size:' + fs + 'px">' + esc(p.name) + '</div><div class="bt" style="font-size:' + (fs - 1) + 'px">' + L.mmss(totals[p.id]) + '</div>';

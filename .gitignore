@@ -4,3 +4,4 @@ keystore/
 *.jks
 *.keystore
 .env
+__pycache__/

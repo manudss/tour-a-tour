@@ -56,6 +56,7 @@ const shot = n => { sh(`adb exec-out screencap -p > e2e-out/${n}.png`); };
     await c0.p.type('#nm', 'Ancien'); await c0.p.evaluate(() => document.querySelector('[data-act=savep]').click());
     const avant = await c0.p.evaluate(() => JSON.parse(localStorage.getItem('tp:data')).people.map(x => x.name));
     check('version précédente installée avec une personne créée', avant.includes('Ancien'), JSON.stringify(avant));
+    await sleep(5000); // laisse la WebView écrire son stockage local avant l'arrêt forcé
     await c0.b.disconnect(); sh(`adb shell am force-stop ${PKG}`); await sleep(1500);
     let upd = ''; try { upd = sh(`adb install -r ${APK} 2>&1`); } catch (e) { upd = String(e.stdout || e.message); }
     console.log(upd);

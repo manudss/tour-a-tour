@@ -347,6 +347,7 @@
       '<h2>Durée par défaut</h2><div class="card"><div class="stepper"><button class="iconbtn" data-act="sdur" data-d="-1">−</button><div class="val">' + st.minutes + ' min</div><button class="iconbtn" data-act="sdur" data-d="1">+</button></div></div>' +
       '<div class="card kv"><span>Garder l\'écran allumé</span><button class="chip ' + (st.keepAwake ? 'sel' : '') + '" data-act="sawake">' + (st.keepAwake ? 'Oui' : 'Non') + '</button></div>' +
       '<h2>Données</h2><div class="card"><div class="sub" style="margin-bottom:8px">Tout reste sur ce téléphone : ' + store.people.length + ' personnes, ' + store.sessions.length + ' sessions.</div><button class="btn" data-act="wipe" style="color:#b3261e;border-color:#b3261e">Effacer l\'historique des sessions</button></div>' +
+      '<h2>Confidentialité</h2><div class="card"><a class="btn" href="https://manudss.github.io/tour-a-tour/confidentialite.html">Politique de confidentialité</a></div>' +
       '<div class="sub" style="text-align:center;margin-top:14px">Tour à tour · version 1.0</div></div></div>';
   }
 

@@ -1,7 +1,9 @@
 package app.tourdeparole;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -11,6 +13,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -48,7 +51,20 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(false);
         s.setTextZoom(100);
         web.addJavascriptInterface(new Bridge(), "Android");
-        web.setWebViewClient(new WebViewClient());
+        /* Les liens externes (politique de confidentialité) s'ouvrent dans le navigateur,
+           jamais dans la WebView : l'application reste sans accès internet. */
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri url = request.getUrl();
+                String scheme = url.getScheme();
+                if ("http".equals(scheme) || "https".equals(scheme)) {
+                    startActivity(new Intent(Intent.ACTION_VIEW, url));
+                    return true;
+                }
+                return false;
+            }
+        });
         /* Android 15+ (cible 35 et plus) dessine l'application sous les barres système :
            on réserve la place des barres, de l'encoche et du clavier avec un conteneur crème. */
         final FrameLayout root = new FrameLayout(this);

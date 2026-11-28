@@ -19,9 +19,25 @@ let step = 0;
   await page.evaluateOnNewDocument(() => {
     let off = 0; const real = Date.now.bind(Date);
     Date.now = () => real() + off; window.__advance = ms => { off += ms; };
+    /* Captures déterministes : transitions et animations coupées, chaque capture montre
+       la disposition stable, jamais un déplacement ou une pulsation en cours. */
+    window.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '.bubble { transition: none !important; } .bubble.sug, .bubble.active.running { animation: none !important; }';
+      document.head.appendChild(st);
+    });
   });
   await page.goto(URL);
   const shot = async name => { step++; const f = `${OUT}/${String(step).padStart(2, '0')}-${name}.png`; await page.screenshot({ path: f }); return f; };
+  /* Vérifie qu'aucune bulle n'en touche une autre (rayon visuel : +10 px pour l'anneau
+     de progression de la bulle active, badges compris dans la marge de 8 px du placement). */
+  const assertPasDeCollision = async () => {
+    const bs = await page.evaluate(() => [...document.querySelectorAll('.bubble')].map(b => { const r = b.getBoundingClientRect(); return { n: b.querySelector('.bn').textContent, x: r.x + r.width / 2, y: r.y + r.height / 2, r: r.width / 2 + (b.classList.contains('active') ? 10 : 0) }; }));
+    for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) {
+      const d = Math.hypot(bs[i].x - bs[j].x, bs[i].y - bs[j].y);
+      assert(d >= bs[i].r + bs[j].r - 1, 'bulles qui se touchent: ' + bs[i].n + ' / ' + bs[j].n + ' (distance ' + Math.round(d) + ' < ' + Math.round(bs[i].r + bs[j].r) + ')');
+    }
+  };
   const click = sel => page.evaluate(s => { const e = document.querySelector(s); if (!e) throw new Error('introuvable: ' + s); e.click(); }, sel);
   const text = () => page.evaluate(() => document.body.innerText);
   /* 1100 ms > transition CSS des bulles (0,9 s) : les captures montrent l'état stable,
@@ -81,6 +97,7 @@ let step = 0;
   await shot('preparation');
   await click('[data-act=launch]');
   await new Promise(r => setTimeout(r, 1200));
+  await assertPasDeCollision();
   await shot('live-depart');
   const fit = () => page.evaluate(() => { const st = document.getElementById('stage'); return [...document.querySelectorAll('.bubble')].map(b => ({ n: b.querySelector('.bn').textContent, over: (b.offsetTop + b.offsetHeight) - st.clientHeight })).filter(x => x.over > 2); });
   assert.deepStrictEqual(await fit(), [], 'toutes les bulles visibles sans défiler (écran court compris)');
@@ -100,6 +117,7 @@ let step = 0;
   // 5. dépassement doux
   await adv(80000);
   t = await text(); assert(t.includes('+0:'), 'dépassement affiché');
+  await assertPasDeCollision();
   await shot('live-depassement');
   gm = await geo();
   assert(gm.prog.da.startsWith('100') && gm.prog2, 'après dépassement: orange complet + arc rouge par-dessus');
@@ -112,6 +130,7 @@ let step = 0;
 
   // 6. suivante x3 avec temps différents
   for (let i = 0; i < 3; i++) { await click('[data-act=next]'); await adv(30000 + i * 20000); }
+  await assertPasDeCollision();
   await shot('live-apres-suivantes');
   const spoken = await page.evaluate(() => { const s = window.__tp.store.live; return Object.keys(s.passed).length; });
   assert(spoken >= 3, 'tour en cours');
@@ -170,6 +189,15 @@ let step = 0;
   assert((await text()).includes('Julie'), 'session sauvegardée');
 
   // 11. fin + bilan
+  /* Le rechargement a remis l'horloge simulée à zéro : la durée de la session
+     (endedAt - startedAt) serait de quelques secondes, incohérente avec la parole
+     cumulée affichée au bilan. On recale startedAt avant de terminer. */
+  await page.evaluate(() => {
+    const L = window.TPLogic, st = window.__tp.store, t = Date.now();
+    const cum = st.live.people.reduce((a, p) => a + L.totalMs(st.live, p.id, t), 0);
+    st.live.startedAt = t - cum - 60000;
+    window.__tp.save(); window.__tp.render();
+  });
   const nSess = await page.evaluate(() => window.__tp.store.sessions.length);
   await shot('live-avec-fin');
   await click('#panel [data-act=endask]'); await shot('fin-confirmation');

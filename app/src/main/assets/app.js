@@ -180,7 +180,12 @@
     var cur = s.current ? s.current.pid : null, sug = L.suggestion(s, t), running = L.isRunning(s);
     var totals = {}; s.people.forEach(function (p) { totals[p.id] = L.totalMs(s, p.id, t); });
     var radii = L.bubbleRadii(totals, cur, W, H);
-    var items = s.people.map(function (p) { return { id: p.id, r: radii[p.id], first: p.id === (cur || sug) }; });
+    /* L'anneau de progression dépasse la bulle active d'environ 12 px (svg à inset -9 px
+       plus son trait) : on l'ajoute au rayon de placement pour que les autres bulles
+       gardent leur marge avec l'anneau, pas seulement avec le cercle. */
+    var RING = 12;
+    var packR = function (id) { return radii[id] + (id === cur ? RING : 0); };
+    var items = s.people.map(function (p) { return { id: p.id, r: packR(p.id), first: p.id === (cur || sug) }; });
     var pk = L.packBubbles(items, W, H, 8);
     /* Écran court: si les bulles débordent sous la zone visible, on les réduit (rayon mini 22 px, touchable)
        jusqu'à tout faire tenir sans défiler. Au-delà (beaucoup de monde), la zone reste défilante. */
@@ -189,7 +194,7 @@
       if (minR <= 22) break;
       var k = Math.max(22 / minR, Math.min(0.96, (H - 10) / pk.height));
       items = items.map(function (x) { return { id: x.id, r: Math.max(22, x.r * k), first: x.first }; });
-      items.forEach(function (x) { radii[x.id] = x.r; });
+      items.forEach(function (x) { radii[x.id] = x.r - (x.id === cur ? RING : 0); });
       pk = L.packBubbles(items, W, H, 8);
     }
     inner.style.height = pk.height + 'px';

@@ -180,7 +180,12 @@
     var cur = s.current ? s.current.pid : null, sug = L.suggestion(s, t), running = L.isRunning(s);
     var totals = {}; s.people.forEach(function (p) { totals[p.id] = L.totalMs(s, p.id, t); });
     var radii = L.bubbleRadii(totals, cur, W, H);
-    var items = s.people.map(function (p) { return { id: p.id, r: radii[p.id], first: p.id === (cur || sug) }; });
+    /* L'anneau de progression dépasse la bulle active d'environ 12 px (svg à inset -9 px
+       plus son trait) : on l'ajoute au rayon de placement pour que les autres bulles
+       gardent leur marge avec l'anneau, pas seulement avec le cercle. */
+    var RING = 12;
+    var packR = function (id) { return radii[id] + (id === cur ? RING : 0); };
+    var items = s.people.map(function (p) { return { id: p.id, r: packR(p.id), first: p.id === (cur || sug) }; });
     var pk = L.packBubbles(items, W, H, 8);
     /* Écran court: si les bulles débordent sous la zone visible, on les réduit (rayon mini 22 px, touchable)
        jusqu'à tout faire tenir sans défiler. Au-delà (beaucoup de monde), la zone reste défilante. */
@@ -189,7 +194,7 @@
       if (minR <= 22) break;
       var k = Math.max(22 / minR, Math.min(0.96, (H - 10) / pk.height));
       items = items.map(function (x) { return { id: x.id, r: Math.max(22, x.r * k), first: x.first }; });
-      items.forEach(function (x) { radii[x.id] = x.r; });
+      items.forEach(function (x) { radii[x.id] = x.r - (x.id === cur ? RING : 0); });
       pk = L.packBubbles(items, W, H, 8);
     }
     inner.style.height = pk.height + 'px';
@@ -297,7 +302,7 @@
     el.style.height = pk.height + 'px';
     el.innerHTML = list.map(function (p) {
       var r = radii[p.id], c = pk.pos[p.id], a = Math.round(r * 1.05);
-      return '<div class="bubble" style="width:' + 2 * r + 'px;height:' + 2 * r + 'px;left:' + (c.x - r) + 'px;top:' + (c.y - r) + 'px;background:' + bgFor(p.avatar) + ';border-color:' + bdFor(p.avatar) + '"><div class="av" style="width:' + a + 'px;height:' + a + 'px">' + avatarHtml(p.avatar, a) + '</div><div class="bn" style="font-size:11px">' + esc(p.name) + '</div></div>';
+      return '<div class="bubble" style="width:' + 2 * r + 'px;height:' + 2 * r + 'px;left:' + (c.x - r) + 'px;top:' + (c.y - r) + 'px;background:' + bgFor(p.avatar) + ';border-color:' + bdFor(p.avatar) + '"><div class="av" style="width:' + a + 'px;height:' + a + 'px">' + avatarHtml(p.avatar, a) + '</div><div class="bn" style="font-size:' + Math.max(8, Math.min(16, Math.round(r / 4.4))) + 'px">' + esc(p.name) + '</div></div>';
     }).join('');
   }
   function summaryCluster() { clusterInto('scl', ui.summary.people, 'ms'); }
@@ -347,6 +352,7 @@
       '<h2>Durée par défaut</h2><div class="card"><div class="stepper"><button class="iconbtn" data-act="sdur" data-d="-1">−</button><div class="val">' + st.minutes + ' min</div><button class="iconbtn" data-act="sdur" data-d="1">+</button></div></div>' +
       '<div class="card kv"><span>Garder l\'écran allumé</span><button class="chip ' + (st.keepAwake ? 'sel' : '') + '" data-act="sawake">' + (st.keepAwake ? 'Oui' : 'Non') + '</button></div>' +
       '<h2>Données</h2><div class="card"><div class="sub" style="margin-bottom:8px">Tout reste sur ce téléphone : ' + store.people.length + ' personnes, ' + store.sessions.length + ' sessions.</div><button class="btn" data-act="wipe" style="color:#b3261e;border-color:#b3261e">Effacer l\'historique des sessions</button></div>' +
+      '<h2>Confidentialité</h2><div class="card"><a class="btn" href="https://manudss.github.io/tour-a-tour/confidentialite.html">Politique de confidentialité</a></div>' +
       '<div class="sub" style="text-align:center;margin-top:14px">Tour à tour · version 1.0</div></div></div>';
   }
 

@@ -214,10 +214,16 @@
     var ids = Object.keys(totalsById), n = Math.max(1, ids.length);
     var rmin = Math.max(26, Math.min(46, Math.sqrt((W * H * 0.42) / (n * Math.PI)) * 0.55));
     var rmax = Math.max(rmin + 8, Math.min(W * 0.28, 92));
-    var tmax = Math.max(120000, Math.max.apply(null, ids.map(function (i) { return totalsById[i]; }).concat([0])));
+    /* Totaux arrondis au pas de 5 s : pendant une prise de parole, les rayons ne changent
+       que par sauts discrets. Sans cela, le rafraîchissement (2 fois/s) relançait les
+       transitions CSS (0,9 s) en boucle et les bulles se chevauchaient en permanence,
+       masquant les prénoms voisins, alors que la disposition calculée ne se superpose pas. */
+    var q = {};
+    ids.forEach(function (id) { q[id] = Math.floor((totalsById[id] || 0) / 5000) * 5000; });
+    var tmax = Math.max(120000, Math.max.apply(null, ids.map(function (i) { return q[i]; }).concat([0])));
     var out = {};
     ids.forEach(function (id) {
-      var f = Math.sqrt(totalsById[id] / tmax);
+      var f = Math.sqrt(q[id] / tmax);
       out[id] = rmin + (rmax - rmin) * Math.min(1, f);
     });
     if (activeId && out[activeId] != null) out[activeId] = Math.max(out[activeId], Math.min(W * 0.27, 90));

@@ -24,7 +24,9 @@ let step = 0;
   const shot = async name => { step++; const f = `${OUT}/${String(step).padStart(2, '0')}-${name}.png`; await page.screenshot({ path: f }); return f; };
   const click = sel => page.evaluate(s => { const e = document.querySelector(s); if (!e) throw new Error('introuvable: ' + s); e.click(); }, sel);
   const text = () => page.evaluate(() => document.body.innerText);
-  const adv = async ms => { await page.evaluate(m => window.__advance(m), ms); await new Promise(r => setTimeout(r, 700)); };
+  /* 1100 ms > transition CSS des bulles (0,9 s) : les captures montrent l'état stable,
+     sans chevauchement transitoire des bulles en cours de déplacement. */
+  const adv = async ms => { await page.evaluate(m => window.__advance(m), ms); await new Promise(r => setTimeout(r, 1100)); };
   const type = async (sel, v) => { await page.focus(sel); await page.keyboard.type(v); };
 
   // 1. accueil vide
@@ -78,7 +80,7 @@ let step = 0;
   t = await text(); assert(t.includes('Tonton Jo') && t.includes('invité'), 'invité ajouté');
   await shot('preparation');
   await click('[data-act=launch]');
-  await new Promise(r => setTimeout(r, 900));
+  await new Promise(r => setTimeout(r, 1200));
   await shot('live-depart');
   const fit = () => page.evaluate(() => { const st = document.getElementById('stage'); return [...document.querySelectorAll('.bubble')].map(b => ({ n: b.querySelector('.bn').textContent, over: (b.offsetTop + b.offsetHeight) - st.clientHeight })).filter(x => x.over > 2); });
   assert.deepStrictEqual(await fit(), [], 'toutes les bulles visibles sans défiler (écran court compris)');

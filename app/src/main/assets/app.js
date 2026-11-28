@@ -297,7 +297,7 @@
     el.style.height = pk.height + 'px';
     el.innerHTML = list.map(function (p) {
       var r = radii[p.id], c = pk.pos[p.id], a = Math.round(r * 1.05);
-      return '<div class="bubble" style="width:' + 2 * r + 'px;height:' + 2 * r + 'px;left:' + (c.x - r) + 'px;top:' + (c.y - r) + 'px;background:' + bgFor(p.avatar) + ';border-color:' + bdFor(p.avatar) + '"><div class="av" style="width:' + a + 'px;height:' + a + 'px">' + avatarHtml(p.avatar, a) + '</div><div class="bn" style="font-size:11px">' + esc(p.name) + '</div></div>';
+      return '<div class="bubble" style="width:' + 2 * r + 'px;height:' + 2 * r + 'px;left:' + (c.x - r) + 'px;top:' + (c.y - r) + 'px;background:' + bgFor(p.avatar) + ';border-color:' + bdFor(p.avatar) + '"><div class="av" style="width:' + a + 'px;height:' + a + 'px">' + avatarHtml(p.avatar, a) + '</div><div class="bn" style="font-size:' + Math.max(8, Math.min(16, Math.round(r / 4.4))) + 'px">' + esc(p.name) + '</div></div>';
     }).join('');
   }
   function summaryCluster() { clusterInto('scl', ui.summary.people, 'ms'); }
